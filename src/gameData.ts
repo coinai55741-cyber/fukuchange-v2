@@ -36,7 +36,8 @@ export const clothing: Clothing[] = [
   makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirtB.png'),
   makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirtB.png'),
   makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirtB.png'),
-  makeClothing('body-flower', '泅水衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'Swimsuit.png'),
+  // 紅色花圖案只提供給允許的日常衣物；藍衫與泅水衫不可生成此配色。
+  makeClothing('body-flower', '短衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'shirtB.png'),
   makeClothing('pants-black', '長褲', '烏色', 'black', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
   makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
   makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'Skirt.png', ['SkirtB.png']),
