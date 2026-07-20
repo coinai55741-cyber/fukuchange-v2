@@ -1,0 +1,41 @@
+﻿entity_id,locale_code,language_code,dialect_code,display_text,romanization
+hakka_shirt,zh-Hant,zh,,藍衫,
+hakka_shirt,hak-sihien,hak,sihien,藍衫,lamˇ samˊ
+short_shirt,zh-Hant,zh,,短衫,
+short_shirt,hak-sihien,hak,sihien,短衫,donˋ qiu
+shorts,zh-Hant,zh,,短褲,
+shorts,hak-sihien,hak,sihien,短褲,donˋ  fu
+long_pants,zh-Hant,zh,,長褲,
+long_pants,hak-sihien,hak,sihien,長褲,congˇ fu
+skirt,zh-Hant,zh,,裙,
+skirt,hak-sihien,hak,sihien,裙,kiunˇ
+puffer_jacket,zh-Hant,zh,,羽絨衫,
+puffer_jacket,hak-sihien,hak,sihien,羽絨衫,iˋ iungˇ samˊ
+sweater,zh-Hant,zh,,膨線衫,
+sweater,hak-sihien,hak,sihien,膨線衫,pong xien samˊ
+scarf,zh-Hant,zh,,頸圍仔,
+scarf,hak-sihien,hak,sihien,頸圍仔,giangˋ viˇ eˋ
+hat,zh-Hant,zh,,帽仔,
+hat,hak-sihien,hak,sihien,帽仔,mo eˋ
+shoes,zh-Hant,zh,,鞋,
+shoes,hak-sihien,hak,sihien,鞋,haiˇ
+knee_protector,zh-Hant,zh,,膝頭落仔,
+knee_protector,hak-sihien,hak,sihien,膝頭落仔,qidˋ teuˇ labˋ eˋ
+rain_boots,zh-Hant,zh,,水靴筒,
+rain_boots,hak-sihien,hak,sihien,水靴筒,suiˋ hioˊ tungˇ
+swim_cap,zh-Hant,zh,,泅水帽,
+swim_cap,hak-sihien,hak,sihien,泅水帽,qiuˇ suiˋ moapˋ
+swimsuit,zh-Hant,zh,,泅水衫,
+swimsuit,hak-sihien,hak,sihien,泅水衫,siuˊ suiˋ samˊ
+orange,zh-Hant,zh,,柑仔色,
+orange,hak-sihien,hak,sihien,柑仔色,gamˊ eˋ sedˋ
+yellow,zh-Hant,zh,,黃色,
+yellow,hak-sihien,hak,sihien,黃色,vongˇ sedˋ
+white,zh-Hant,zh,,白色,
+white,hak-sihien,hak,sihien,白色,pag sedˋ
+black,zh-Hant,zh,,烏色,
+black,hak-sihien,hak,sihien,烏色,vuˊ sedˋ
+dark_green,zh-Hant,zh,,吊菜色,
+dark_green,hak-sihien,hak,sihien,吊菜色,diau coi sedˋ
+red_flower_pattern,zh-Hant,zh,,紅色花圖案,
+red_flower_pattern,hak-sihien,hak,sihien,紅色花圖案,fungˇ sedˋ faˊ bu
