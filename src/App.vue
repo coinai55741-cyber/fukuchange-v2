@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { clothing, questions, tabs, type ClosetTab, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
@@ -49,6 +49,26 @@ const closetCards = computed(() => {
 const wornItems = computed(() => Object.entries(selected.value)
   .map(([, id]) => clothing.find((item) => item.id === id))
   .filter(Boolean))
+
+const colorMap: Record<Clothing['colorKey'], string> = {
+  blue: '#396f9e',
+  yellow: '#f0be35',
+  white: '#f8f2e8',
+  black: '#36383d',
+  red_flower_pattern: '#dc2626',
+}
+
+function assetUrl(file: string) {
+  return `/images/${file}`
+}
+
+function garmentStyle(item: Clothing, layer = item.wearLayers[0]) {
+  return {
+    '--garment-color': colorMap[item.colorKey],
+    '--garment-mask': `url("${assetUrl(layer)}")`,
+    '--garment-pattern': item.colorKey === 'red_flower_pattern' ? `url("${assetUrl('red_flower_pattern.svg')}")` : 'none',
+  }
+}
 
 function shuffle<T>(values: T[]) {
   return [...values].sort(() => Math.random() - 0.5)
@@ -162,8 +182,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <section v-else-if="screen === 'game'" class="game-screen">
       <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><span>♫ 音效</span><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>著藍衫</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
-      <section class="avatar-zone"><div class="body-controls" aria-hidden="true">客<br>頸<br>身<br>褲<br>膝<br>腳</div><div class="avatar"><div class="avatar-head">◕‿◕</div><div class="avatar-shirt" :class="{ on: selected.body }">{{ wornItems.find(i => i?.slot === 'body')?.icon || '□' }}</div><div class="avatar-pants" :class="{ on: selected.pants }">{{ wornItems.find(i => i?.slot === 'pants')?.icon || '□' }}</div><div class="avatar-shoes">{{ wornItems.find(i => i?.slot === 'shoes')?.icon || '□' }}</div><div class="avatar-accessory">{{ wornItems.filter(i => ['head','neck','knee'].includes(i?.slot || '')).map(i => i?.icon).join(' ') }}</div></div></section>
-      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon">{{ card.icon }}</span><small>{{ card.color }} {{ card.name }}</small></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <section class="avatar-zone"><div class="body-controls" aria-hidden="true">客<br>頸<br>身<br>褲<br>膝<br>腳</div><div class="avatar"><img class="base-body" :src="assetUrl('body.png')" alt="阿梅角色底圖"><template v-for="item in wornItems" :key="item!.id"><div v-for="layer in item!.wearLayers" :key="layer" class="garment-layer" :class="`layer-${item!.slot}`" :style="garmentStyle(item!, layer)"><span class="garment-fill"></span><img class="garment-outline" :src="assetUrl(layer)" alt=""></div></template></div></section>
+      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon" :style="garmentStyle(card, card.closetImage)"><span></span></span><small>{{ card.color }} {{ card.name }}</small></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.kind === 'success'" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
     </section>
 

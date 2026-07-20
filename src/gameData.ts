@@ -5,9 +5,11 @@ export type Clothing = {
   id: string
   name: string
   color: string
+  colorKey: 'blue' | 'yellow' | 'white' | 'black' | 'red_flower_pattern'
   slot: Slot
   tab: ClosetTab
-  icon: string
+  closetImage: string
+  wearLayers: string[]
 }
 
 export type Question = {
@@ -27,22 +29,26 @@ export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
   { id: 'accessories', label: '配件', icon: '🧢' },
 ]
 
+const makeClothing = (id: string, name: string, color: Clothing['color'], colorKey: Clothing['colorKey'], slot: Slot, tab: ClosetTab, closetImage: string, wearLayers = [closetImage]): Clothing => ({ id, name, color, colorKey, slot, tab, closetImage, wearLayers })
+
 export const clothing: Clothing[] = [
-  { id: 'body-blue', name: '藍衫', color: '藍色', slot: 'body', tab: 'tops', icon: '👔' },
-  { id: 'body-yellow', name: '短衫', color: '黃色', slot: 'body', tab: 'tops', icon: '👕' },
-  { id: 'body-white', name: '短衫', color: '白色', slot: 'body', tab: 'tops', icon: '👕' },
-  { id: 'body-black', name: '短衫', color: '烏色', slot: 'body', tab: 'tops', icon: '👕' },
-  { id: 'pants-black', name: '長褲', color: '烏色', slot: 'pants', tab: 'bottoms', icon: '👖' },
-  { id: 'pants-yellow', name: '短褲', color: '黃色', slot: 'pants', tab: 'bottoms', icon: '🩳' },
-  { id: 'pants-white', name: '裙', color: '白色', slot: 'pants', tab: 'bottoms', icon: '👗' },
-  { id: 'pants-blue', name: '長褲', color: '藍色', slot: 'pants', tab: 'bottoms', icon: '👖' },
-  { id: 'shoes-white', name: '鞋', color: '白色', slot: 'shoes', tab: 'shoes', icon: '👟' },
-  { id: 'shoes-black', name: '鞋', color: '烏色', slot: 'shoes', tab: 'shoes', icon: '👞' },
-  { id: 'shoes-rain', name: '水靴筒', color: '黃色', slot: 'shoes', tab: 'shoes', icon: '🥾' },
-  { id: 'head-yellow', name: '帽仔', color: '黃色', slot: 'head', tab: 'accessories', icon: '🧢' },
-  { id: 'head-black', name: '帽仔', color: '烏色', slot: 'head', tab: 'accessories', icon: '🎩' },
-  { id: 'neck-white', name: '頸圍仔', color: '白色', slot: 'neck', tab: 'accessories', icon: '🧣' },
-  { id: 'knee-yellow', name: '膝頭落仔', color: '黃色', slot: 'knee', tab: 'accessories', icon: '🧦' },
+  makeClothing('body-blue', '藍衫', '藍色', 'blue', 'body', 'tops', 'Hakka-shirt.png'),
+  makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirtB.png'),
+  makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirtB.png'),
+  makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirtB.png'),
+  makeClothing('body-flower', '泅水衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'Swimsuit.png'),
+  makeClothing('pants-black', '長褲', '烏色', 'black', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
+  makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
+  makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'Skirt.png', ['SkirtB.png']),
+  makeClothing('pants-blue', '長褲', '藍色', 'blue', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
+  makeClothing('pants-flower', '短褲', '紅色花圖案', 'red_flower_pattern', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
+  makeClothing('shoes-white', '鞋', '白色', 'white', 'shoes', 'shoes', 'ShoeA.png', ['ShoesB.png']),
+  makeClothing('shoes-black', '鞋', '烏色', 'black', 'shoes', 'shoes', 'ShoeA.png', ['ShoesB.png']),
+  makeClothing('shoes-rain', '水靴筒', '黃色', 'yellow', 'shoes', 'shoes', 'Rain-bootsA.png', ['Rain-bootsB.png']),
+  makeClothing('head-yellow', '帽仔', '黃色', 'yellow', 'head', 'accessories', 'hat.png'),
+  makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
+  makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'ScarfB.png'),
+  makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'Knee-length-socks.png'),
 ]
 
 const threePiece = (body: string, pants: string, shoes: string, extras: Partial<Record<Slot, string>> = {}) => ({ body, pants, shoes, ...extras })
