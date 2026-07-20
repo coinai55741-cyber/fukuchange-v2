@@ -44,12 +44,12 @@ const questionText = computed(() => {
 const seasonWeatherLabel = computed(() => {
   const id = currentQuestion.value?.id
   const labels: Record<string, string> = {
-    q01: '春天・晴天', q02: '夏天・晴天', q03: '春天・晴天', q04: '夏天・夜晚', q05: '春天・下雨',
-    q06: '夏天・晴天', q07: '秋天・涼爽', q08: '夏天・晴天', q09: '春天・晴天', q10: '秋天・夜晚',
-    q11: '春天・晴天', q12: '夏天・晴天', q13: '春天・晴天', q14: '夏天・夜晚', q15: '春天・下雨',
-    q16: '夏天・晴天', q17: '秋天・涼爽', q18: '夏天・晴天', q19: '春天・晴天', q20: '冬天・寒冷',
+    q01: '🌤️ 春天／溫暖', q02: '☀️ 夏天／熱', q03: '🌤️ 春天／溫暖', q04: '🌙 夜晚／涼', q05: '🌧️ 雨天／濕冷',
+    q06: '☀️ 夏天／熱', q07: '🍂 秋天／涼', q08: '☀️ 夏天／熱', q09: '🌤️ 春天／溫暖', q10: '🌙 夜晚／涼',
+    q11: '🌤️ 春天／溫暖', q12: '☀️ 夏天／熱', q13: '🌤️ 春天／溫暖', q14: '🌙 夜晚／涼', q15: '🌧️ 雨天／濕冷',
+    q16: '☀️ 夏天／熱', q17: '🍂 秋天／涼', q18: '☀️ 夏天／熱', q19: '🌤️ 春天／溫暖', q20: '❄️ 冬天／冷',
   }
-  return id ? labels[id] ?? '一般・晴天' : ''
+  return id ? labels[id] ?? '🌤️ 一般／溫暖' : ''
 })
 
 const closetCards = computed(() => {
@@ -195,7 +195,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
     <section v-else-if="screen === 'game'" class="game-screen">
       <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><span>♫ 音效</span><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
-      <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>季節：{{ seasonWeatherLabel.split('・')[0] }}　天氣：{{ seasonWeatherLabel.split('・')[1] }}</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
+      <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
       <section class="avatar-zone"><div class="body-controls" aria-hidden="true">頭<br>頸<br>身<br>褲<br>膝<br>腳</div><div class="avatar"><img class="base-body" :class="{ 'body-without-head': activeHeadAsset }" :src="assetUrl(activeHeadAsset ? 'body.png' : 'body_full.png')" alt="阿梅角色底圖"><img v-if="activeHeadAsset" class="base-head" :src="assetUrl(activeHeadAsset)" alt="阿梅帽子專用頭部"><template v-for="item in wornItems" :key="item!.id"><div v-for="layer in item!.wearLayers" :key="layer" class="garment-layer" :class="[`layer-${item!.slot}`, { 'fixed-color': item!.colorMode === 'fixed' }]" :style="garmentStyle(item!, layer)"><span class="garment-fill"></span><img class="garment-outline" :src="assetUrl(layer)" alt=""></div></template></div></section>
       <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon" :style="garmentStyle(card, card.closetImage)"><span></span></span><small>{{ card.color }} {{ card.name }}</small></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.kind === 'success'" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
