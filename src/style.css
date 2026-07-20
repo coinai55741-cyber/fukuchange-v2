@@ -19,3 +19,5 @@
 .layer-head { z-index: 5; }
 .base-body { width: 357px; left: -9px; top: -53px; }
 .base-body.body-without-head { width: 500px; left: -80px; top: -385px; }
+.garment-layer.fixed-color .garment-fill { display: none; }
+.garment-layer.fixed-color .garment-outline { opacity: 1; mix-blend-mode: normal; }

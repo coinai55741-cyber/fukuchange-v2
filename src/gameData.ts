@@ -6,6 +6,7 @@ export type Clothing = {
   name: string
   color: string
   colorKey: 'blue' | 'yellow' | 'white' | 'black' | 'red_flower_pattern'
+  colorMode: 'fixed' | 'dye'
   slot: Slot
   tab: ClosetTab
   closetImage: string
@@ -29,10 +30,10 @@ export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
   { id: 'accessories', label: '配件', icon: '🧢' },
 ]
 
-const makeClothing = (id: string, name: string, color: Clothing['color'], colorKey: Clothing['colorKey'], slot: Slot, tab: ClosetTab, closetImage: string, wearLayers = [closetImage]): Clothing => ({ id, name, color, colorKey, slot, tab, closetImage, wearLayers })
+const makeClothing = (id: string, name: string, color: Clothing['color'], colorKey: Clothing['colorKey'], slot: Slot, tab: ClosetTab, closetImage: string, wearLayers = [closetImage], colorMode: Clothing['colorMode'] = 'dye'): Clothing => ({ id, name, color, colorKey, colorMode, slot, tab, closetImage, wearLayers })
 
 export const clothing: Clothing[] = [
-  makeClothing('body-blue', '藍衫', '藍色', 'blue', 'body', 'tops', 'Hakka-shirt.png'),
+  makeClothing('body-blue', '藍衫', '固定藍染', 'blue', 'body', 'tops', 'Hakka-shirt.png', ['Hakka-shirt.png'], 'fixed'),
   makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirtB.png'),
   makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirtB.png'),
   makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirtB.png'),
