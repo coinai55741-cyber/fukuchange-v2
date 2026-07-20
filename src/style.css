@@ -17,3 +17,5 @@
 .base-head { position: absolute; z-index: 2; width: 280px; max-width: none; left: 30px; top: -80px; }
 .garment-layer { z-index: 3; }
 .layer-head { z-index: 5; }
+.base-body { width: 357px; left: -9px; top: -53px; }
+.base-body.body-without-head { width: 500px; left: -80px; top: -385px; }
