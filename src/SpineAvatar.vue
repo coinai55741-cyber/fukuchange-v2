@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Application, Assets } from 'pixi.js'
 import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { clothing, type Clothing, type Slot } from './gameData'
 
 const props = defineProps<{
@@ -9,6 +9,11 @@ const props = defineProps<{
 }>()
 
 const host = ref<HTMLDivElement | null>(null)
+
+const showFlowerShirt = computed(() => {
+  const bodyItem = props.outfit.body ? clothingById.get(props.outfit.body) : undefined
+  return bodyItem?.name === '短衫' && bodyItem.colorKey === 'red_flower_pattern'
+})
 
 const spineAssets = {
   skeleton: 'girl-skeleton',
@@ -154,10 +159,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="host" class="spine-avatar" aria-label="阿梅角色換裝預覽"></div>
+  <div ref="host" class="spine-avatar" aria-label="阿梅角色換裝預覽">
+    <div v-if="showFlowerShirt" class="flower-shirt-overlay" aria-hidden="true">
+      <i></i>
+      <img src="/images/shirt_detail.png" alt="">
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.spine-avatar { width: 360px; height: 570px; display: grid; place-items: center; }
+.spine-avatar { position: relative; width: 360px; height: 570px; display: grid; place-items: center; }
 .spine-avatar :deep(canvas) { display: block; width: 360px; height: 570px; }
+.flower-shirt-overlay { position: absolute; z-index: 2; left: 78px; top: 222px; width: 204px; height: 173px; pointer-events: none; }
+.flower-shirt-overlay i, .flower-shirt-overlay img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
+.flower-shirt-overlay i { background-color: #d94150; background-image: url('/images/red_flower_pattern.svg'); background-repeat: repeat; background-size: 30px 30px; -webkit-mask-image: url('/images/shirt_mask.png'); mask-image: url('/images/shirt_mask.png'); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.flower-shirt-overlay img { mix-blend-mode: multiply; }
 </style>
