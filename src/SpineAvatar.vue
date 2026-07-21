@@ -32,6 +32,8 @@ const attachmentByItem: Record<string, string[]> = {
   'shoes-rain': ['rain_boots_B'],
   'head-yellow': ['hat'],
   'head-black': ['hat'],
+  // 泳帽是「替換頭部」加上「泳帽本體」的組合，兩個 Spine attachment 必須同時開啟。
+  'head-swim-cap': ['head_swim_cap', 'head-swin'],
   'neck-white': ['scarf_B'],
   'knee-yellow': ['knee_protector_B'],
 }
@@ -53,11 +55,13 @@ function applyOutfit() {
     spine.skeleton.findSlot(slotName)?.setAttachment(null)
   }
 
-  spine.skeleton.setAttachment('body_base', 'body_base')
-  spine.skeleton.setAttachment('head_normal', 'head_normal')
+  const itemIds = Object.values(props.outfit).filter((itemId): itemId is string => Boolean(itemId))
+  const usesSwimCap = itemIds.includes('head-swim-cap')
 
-  for (const itemId of Object.values(props.outfit)) {
-    if (!itemId) continue
+  spine.skeleton.setAttachment('body_base', 'body_base')
+  if (!usesSwimCap) spine.skeleton.setAttachment('head_normal', 'head_normal')
+
+  for (const itemId of itemIds) {
     for (const attachment of attachmentByItem[itemId] ?? []) spine.skeleton.setAttachment(attachment, attachment)
   }
 

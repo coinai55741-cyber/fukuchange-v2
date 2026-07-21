@@ -49,6 +49,8 @@ export const clothing: Clothing[] = [
   makeClothing('shoes-rain', '水靴筒', '黃色', 'yellow', 'shoes', 'shoes', 'Rain-bootsA.png', ['Rain-bootsB.png']),
   makeClothing('head-yellow', '帽仔', '黃色', 'yellow', 'head', 'accessories', 'hat.png'),
   makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
+  // 泳帽在角色端會同時啟用替換頭部與帽體；衣櫃使用 A 圖。
+  makeClothing('head-swim-cap', '泳帽', '藍色', 'blue', 'head', 'accessories', 'head-swinA.png'),
   makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'ScarfB.png'),
   makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'Knee-length-socks.png'),
 ]
