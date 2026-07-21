@@ -21,3 +21,20 @@
 .base-body.body-without-head { width: 500px; left: -80px; top: -385px; }
 .garment-layer.fixed-color .garment-fill { display: none; }
 .garment-layer.fixed-color .garment-outline { opacity: 1; mix-blend-mode: normal; }
+.dialects { margin-bottom: .65rem; }
+.dialect-note { min-height: 2.4em; margin: 0 0 1.15rem; color: #7d7165; font-size: .88rem; line-height: 1.45; }
+.lobby-card { max-width: 720px; padding: 1.65rem 2rem; text-align: left; }
+.lobby-card h1 { margin: .15rem 0 1rem; color: #253952; font-size: clamp(1.8rem, 3.25vw, 2.6rem); }
+.lobby-card h1 span { color: #df8e2d; }
+.lobby-info { display: grid; gap: .8rem; }
+.lobby-intro, .info-block, .warning { margin: 0; border-radius: 14px; padding: .9rem 1rem; line-height: 1.6; }
+.lobby-intro, .rules { background: #f8fafc; color: #35465e; }
+.lobby-intro { font-size: 1.02rem; font-weight: 700; }
+.info-block { border: 1px solid #d9edf0; }
+.info-block b { color: #168276; }
+.info-block p { margin: .25rem 0 0; color: #168276; font-size: .9rem; }
+.rules { border-color: #e2e8f0; }
+.rules b { color: #344054; }
+.rules ol { margin: .35rem 0 0; padding-left: 1.25rem; font-size: .9rem; font-weight: 700; }
+.warning { border: 1px solid #fee2e2; background: #fff5f5; color: #c42d51; font-size: .9rem; font-weight: 800; }
+.lobby-card .dialects { margin-top: .85rem; }

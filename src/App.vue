@@ -6,6 +6,7 @@ import SpineAvatar from './SpineAvatar.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
 type Feedback = { kind: 'success' | 'error'; text: string } | null
+type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
 
 const screen = ref<Screen>('intro')
 const introStep = ref(0)
@@ -19,7 +20,17 @@ const score = ref(0)
 const elapsedMs = ref(0)
 const leaderboard = ref<LeaderboardResponse | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
+const selectedDialect = ref<Dialect>('hak-sihien')
 let timer: number | undefined
+
+const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[] = [
+  { id: 'hak-sihien', label: '四縣腔', hasVerifiedVocabulary: true },
+  { id: 'hak-hailu', label: '海陸腔', hasVerifiedVocabulary: false },
+  { id: 'hak-dapu', label: '大埔腔', hasVerifiedVocabulary: false },
+  { id: 'hak-raoping', label: '饒平腔', hasVerifiedVocabulary: false },
+  { id: 'hak-zhaoan', label: '詔安腔', hasVerifiedVocabulary: false },
+  { id: 'hak-namsihien', label: '南四縣腔', hasVerifiedVocabulary: false },
+]
 
 const introScenes = [
   { tag: '假圖：intro_01_ready', speaker: '阿梅', text: '哇！我已經準備好出發囉！', mood: 'happy' },
@@ -186,9 +197,14 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
     <section v-else-if="screen === 'lobby'" class="lobby-screen">
       <div class="lobby-card">
-        <p class="eyebrow">穿搭小達人</p><h1>幫阿梅看場合穿衣服！</h1>
-        <p>每局隨機抽取 10 題；前 5 題為中文情境題，後 5 題將顏色或衣物其中一項改成四縣腔拼音。</p>
-        <div class="dialects"><button class="selected">四縣腔</button><button disabled>海陸腔（準備中）</button><button disabled>大埔腔（準備中）</button><button disabled>饒平腔（準備中）</button></div>
+        <p class="eyebrow">✧ 阿梅的穿搭冒險</p><h1>歡迎來到 <span>穿搭小達人！</span></h1>
+        <section class="lobby-info" aria-label="遊戲說明">
+          <p class="lobby-intro">阿梅最愛出去玩，但出門前得先學會「看場合穿衣服」！翻開阿梅的衣櫃，發揮穿搭創意，幫阿梅避開尷尬的服裝災難，變身穿搭小達人吧！</p>
+          <article class="info-block purpose"><b>▼ 遊玩提示</b><p>玩穿可事先閱讀課程學習，學習客語單字。</p></article>
+          <article class="info-block rules"><b>▼ 遊玩計分</b><ol><li>總遊玩分數，一題 10 分。</li><li>根據題目選擇合適的穿著。</li><li>累計最高分及最快秒數為勝利。</li></ol></article>
+          <p class="warning">⚠️　▼ 出門前記得上衣、下衣、鞋子都要穿好喲！</p>
+        </section>
+        <div class="dialects"><button v-for="dialect in dialects" :key="dialect.id" :class="{ selected: selectedDialect === dialect.id }" :aria-pressed="selectedDialect === dialect.id" @click="selectedDialect = dialect.id">{{ dialect.label }}</button></div>
         <button class="primary start" @click="startGame">開始遊戲</button>
         <button class="text-button rank-link" @click="showLeaderboard">查看排行榜</button>
       </div>
