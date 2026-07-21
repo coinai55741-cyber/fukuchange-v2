@@ -1,3 +1,5 @@
+import quizCsv from '../data/quiz/穿搭小達人 - 出題架構.csv?raw'
+
 export type Slot = 'head' | 'neck' | 'body' | 'pants' | 'knee' | 'shoes'
 export type ClosetTab = 'tops' | 'bottoms' | 'shoes' | 'accessories'
 
@@ -15,6 +17,7 @@ export type Clothing = {
 
 export type Question = {
   id: string
+  verb?: string
   context: string
   color: string
   colorPinyin: string
@@ -41,6 +44,7 @@ export const clothing: Clothing[] = [
   makeClothing('body-flower', '短衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'shirtB.png'),
   makeClothing('pants-black', '長褲', '烏色', 'black', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
   makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
+  makeClothing('pants-shorts-white', '短褲', '白色', 'white', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
   makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'Skirt.png', ['SkirtB.png']),
   makeClothing('pants-blue', '長褲', '藍色', 'blue', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
   makeClothing('pants-flower', '短褲', '紅色花圖案', 'red_flower_pattern', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
@@ -57,7 +61,7 @@ export const clothing: Clothing[] = [
 
 const threePiece = (body: string, pants: string, shoes: string, extras: Partial<Record<Slot, string>> = {}) => ({ body, pants, shoes, ...extras })
 
-export const questions: Question[] = [
+const legacyQuestions: Question[] = [
   { id: 'q01', context: '去客庄體驗藍染，像是穿越到早時客庄。', color: '藍色', colorPinyin: 'lamˋ seˋ', item: '藍衫', itemPinyin: 'lamˋ samˊ', target: threePiece('body-blue', 'pants-black', 'shoes-white') },
   { id: 'q02', context: '大熱天到公園打球，要輕鬆又舒服。', color: '黃色', colorPinyin: 'vongˋ sedˋ', item: '短衫', itemPinyin: 'donˊ fuˋ', target: threePiece('body-yellow', 'pants-yellow', 'shoes-white') },
   { id: 'q03', context: '要去參加正式的家庭聚會。', color: '白色', colorPinyin: 'pagˋ sedˋ', item: '短衫', itemPinyin: 'donˊ fuˋ', target: threePiece('body-white', 'pants-white', 'shoes-white') },
@@ -79,3 +83,74 @@ export const questions: Question[] = [
   { id: 'q19', context: '客庄散步，選一套簡單的藍色搭配。', color: '藍色', colorPinyin: 'lamˋ seˋ', item: '長褲', itemPinyin: 'chhongˇ fuˋ', target: threePiece('body-blue', 'pants-blue', 'shoes-white') },
   { id: 'q20', context: '晚上外出，選沉穩又方便走路的衣物。', color: '烏色', colorPinyin: 'vuˊ sedˋ', item: '帽仔', itemPinyin: 'moˊ eˋ', target: threePiece('body-black', 'pants-black', 'shoes-black', { head: 'head-black' }) },
 ]
+
+type CsvRow = Record<string, string>
+
+function parseCsv(raw: string): CsvRow[] {
+  const rows: string[][] = [[]]
+  let value = ''
+  let quoted = false
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index]
+    if (char === '"') {
+      if (quoted && raw[index + 1] === '"') { value += '"'; index += 1 } else quoted = !quoted
+    } else if (char === ',' && !quoted) {
+      rows[rows.length - 1]?.push(value); value = ''
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && raw[index + 1] === '\n') index += 1
+      rows[rows.length - 1]?.push(value); value = ''
+      rows.push([])
+    } else value += char
+  }
+  if (value || rows[rows.length - 1]?.length) rows[rows.length - 1]?.push(value)
+  const [header, ...data] = rows
+  return data.filter((row) => row.some(Boolean)).map((row) => Object.fromEntries(header.map((key, index) => [key, row[index] ?? ''])))
+}
+
+const targetItemIds: Record<string, string> = {
+  'hakka_shirt@none': 'body-blue', 'short_shirt@yellow': 'body-yellow', 'short_shirt@white': 'body-white', 'short_shirt@black': 'body-black',
+  'shorts@yellow': 'pants-yellow', 'shorts@white': 'pants-shorts-white', 'long_pants@black': 'pants-black', 'skirt@white': 'pants-white',
+  'shoes@white': 'shoes-white', 'shoes@black': 'shoes-black', 'rain_boots@yellow': 'shoes-rain',
+  'hat@yellow': 'head-yellow', 'hat@black': 'head-black', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white',
+}
+
+const slotByEntity: Record<string, Slot> = {
+  hakka_shirt: 'body', short_shirt: 'body', puffer_jacket: 'body', sweater: 'body', swimsuit: 'body',
+  shorts: 'pants', long_pants: 'pants', skirt: 'pants', shoes: 'shoes', rain_boots: 'shoes',
+  hat: 'head', swim_cap: 'head', scarf: 'neck', knee_protector: 'knee',
+}
+
+const displayEntityByChinese: Record<string, string> = {
+  '藍衫': 'hakka_shirt', '短衫': 'short_shirt', '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '鞋': 'shoes', '水靴筒': 'rain_boots',
+  '帽仔': 'hat', '泅水帽': 'swim_cap', '頸圍仔': 'scarf', '膝頭落仔': 'knee_protector', '泅水衫': 'swimsuit',
+}
+
+const colorLabels: Record<string, string> = { yellow: '黃色', white: '白色', black: '烏色', blue: '藍色', none: '' }
+const pinyinByWord: Record<string, string> = { '藍衫': 'lamˋ samˊ', '短衫': 'donˊ fuˋ', '短褲': 'fonˊ kuˋ', '長褲': 'chhongˇ fuˋ', '鞋': 'haiˇ', '水靴筒': 'suiˋ hiˋ thungˇ', '帽仔': 'moˊ eˋ', '頸圍仔': 'giˋ teuˋ eˋ', '膝頭落仔': 'kiˊ teuˇ logˋ eˋ', '黃色': 'vongˋ sedˋ', '白色': 'pagˋ sedˋ', '烏色': 'vuˊ sedˋ' }
+
+function buildQuestionsFromCsv(): Question[] {
+  return parseCsv(quizCsv).flatMap((row) => {
+    const target: Partial<Record<Slot, string>> = {}
+    let valid = true
+    const targetTokens = row.target_outfit_ids.split(';').filter(Boolean)
+    for (const token of targetTokens) {
+      const [, entityAndColor = ''] = token.split(':')
+      const [entity] = entityAndColor.split('@')
+      const slot = slotByEntity[entity]
+      const itemId = targetItemIds[entityAndColor]
+      if (!slot || !itemId) { valid = false; break }
+      target[slot] = itemId
+    }
+    if (!valid || !Object.keys(target).length) return []
+
+    const item = row.item.split(',')[0].trim()
+    const promptEntity = displayEntityByChinese[item]
+    const promptToken = targetTokens.map((token) => token.split(':')[1]).find((token) => token?.startsWith(`${promptEntity}@`))
+    const promptColor = promptToken?.split('@')[1] ?? ''
+    const color = colorLabels[promptColor] ?? ''
+    return [{ id: `csv-${row.stage_id}`, verb: row.stage_title.split(',')[0].trim(), context: row.context_text, color, colorPinyin: pinyinByWord[color] ?? color, item, itemPinyin: pinyinByWord[item] ?? item, target }]
+  })
+}
+
+// 題目文字、敘述與目標搭配以 CSV 為來源；尚未有可穿素材的題目會暫時略過。
+export const questions: Question[] = buildQuestionsFromCsv()

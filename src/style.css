@@ -38,3 +38,8 @@
 .rules ol { margin: .35rem 0 0; padding-left: 1.25rem; font-size: .9rem; font-weight: 700; }
 .warning { border: 1px solid #fee2e2; background: #fff5f5; color: #c42d51; font-size: .9rem; font-weight: 800; }
 .lobby-card .dialects { margin-top: .85rem; }
+.body-controls { z-index: 6; display: grid; gap: .38rem; line-height: normal; }
+.body-control { display: flex; align-items: center; gap: .2rem; min-height: 1.75rem; }
+.body-control > button:first-child { width: 1.8rem; padding: .15rem; border-radius: .35rem; color: #6992ae; background: transparent; font-weight: 900; }
+.body-control > button:first-child:hover, .body-control > button:first-child.equipped { background: #e5f2fa; color: #377fa6; }
+.slot-clear { width: 1.15rem; height: 1.15rem; padding: 0; border-radius: 50%; color: white; background: #dc756b; font-weight: 900; line-height: 1; }

@@ -24,6 +24,7 @@ const attachmentByItem: Record<string, string[]> = {
   'pants-black': ['long_pants_B'],
   'pants-blue': ['long_pants_B'],
   'pants-yellow': ['shorts_B'],
+  'pants-shorts-white': ['shorts_B'],
   'pants-flower': ['shorts_B'],
   // 目前匯出的 skirt_B_under / skirt_B_over 使用同一張裙子圖，先只顯示前層版本，避免重複變深。
   'pants-white': ['skirt_B_over'],

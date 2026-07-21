@@ -21,6 +21,7 @@ const elapsedMs = ref(0)
 const leaderboard = ref<LeaderboardResponse | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
 const selectedDialect = ref<Dialect>('hak-sihien')
+const closetItemIds = ref<Record<ClosetTab, string[]>>({ tops: [], bottoms: [], shoes: [], accessories: [] })
 let timer: number | undefined
 
 const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[] = [
@@ -38,6 +39,15 @@ const introScenes = [
   { tag: '假圖：intro_03_wrong_examples', speaker: '阿梅', text: '哎呀！如果穿錯衣服或選錯顏色，可就太尷尬了！造型師快來幫幫忙吧！', mood: 'worried' },
 ]
 
+const bodySlotControls: { slot: Slot; label: string; tab: ClosetTab }[] = [
+  { slot: 'head', label: '頭', tab: 'accessories' },
+  { slot: 'neck', label: '頸', tab: 'accessories' },
+  { slot: 'body', label: '身', tab: 'tops' },
+  { slot: 'pants', label: '褲', tab: 'bottoms' },
+  { slot: 'knee', label: '膝', tab: 'accessories' },
+  { slot: 'shoes', label: '腳', tab: 'shoes' },
+]
+
 const currentQuestion = computed(() => gameSet.value[questionIndex.value])
 const phase = computed(() => questionIndex.value < 5 ? 1 : 2)
 const isPinyinQuestion = computed(() => phase.value === 2)
@@ -50,7 +60,8 @@ const questionText = computed(() => {
   if (!question) return ''
   const color = isPinyinQuestion.value && pinyinField.value === 'color' ? question.colorPinyin : question.color
   const item = isPinyinQuestion.value && pinyinField.value === 'item' ? question.itemPinyin : question.item
-  return `著 ${color} 个 ${item}，${question.context}`
+  const phrase = color ? `${color} 个 ${item}` : item
+  return `${question.verb ?? '著'} ${phrase}${question.context}`
 })
 
 const seasonWeatherLabel = computed(() => {
@@ -64,10 +75,9 @@ const seasonWeatherLabel = computed(() => {
   return id ? labels[id] ?? '☀️ 夏天／熱' : ''
 })
 
-const closetCards = computed(() => {
-  const targets = targetIds.value
-  return clothing.filter((item) => item.tab === activeTab.value && (targets.includes(item.id) || true))
-})
+const closetCards = computed(() => closetItemIds.value[activeTab.value]
+  .map((id) => clothing.find((item) => item.id === id))
+  .filter((item): item is Clothing => Boolean(item)))
 
 const wornItems = computed(() => Object.entries(selected.value)
   .map(([, id]) => clothing.find((item) => item.id === id))
@@ -100,6 +110,22 @@ function shuffle<T>(values: T[]) {
   return [...values].sort(() => Math.random() - 0.5)
 }
 
+// 每個分頁最多顯示三件：題目正解必定保留，其餘從同分頁的全部物件隨機抽取。
+// 因此每一個物件都有機會成為誘答，但不會讓正解消失。
+function prepareCloset(question: Question | undefined) {
+  const requiredIds = new Set(Object.values(question?.target ?? {}))
+  const next: Record<ClosetTab, string[]> = { tops: [], bottoms: [], shoes: [], accessories: [] }
+
+  for (const tab of tabs) {
+    const inTab = clothing.filter((item) => item.tab === tab.id)
+    const guaranteed = inTab.filter((item) => requiredIds.has(item.id))
+    const distractors = shuffle(inTab.filter((item) => !requiredIds.has(item.id)))
+    next[tab.id] = shuffle([...guaranteed, ...distractors.slice(0, Math.max(0, 3 - guaranteed.length))]).map((item) => item.id)
+  }
+
+  closetItemIds.value = next
+}
+
 function formatTime(ms: number) {
   const totalSeconds = Math.floor(ms / 1000)
   const minutes = Math.floor(totalSeconds / 60)
@@ -114,9 +140,11 @@ function nextIntro() {
 }
 
 function startGame() {
-  gameSet.value = shuffle(questions).slice(0, 10)
+  const nextGameSet = shuffle(questions).slice(0, 10)
+  gameSet.value = nextGameSet
   questionIndex.value = 0
   selected.value = {}
+  prepareCloset(nextGameSet[0])
   score.value = 0
   completed.value = 0
   elapsedMs.value = 0
@@ -129,6 +157,18 @@ function startGame() {
 
 function chooseCard(id: string, slot: Slot) {
   selected.value = { ...selected.value, [slot]: id }
+  feedback.value = null
+}
+
+function focusClosetSlot(tab: ClosetTab) {
+  activeTab.value = tab
+}
+
+function clearSlot(slot: Slot) {
+  if (!selected.value[slot]) return
+  const next = { ...selected.value }
+  delete next[slot]
+  selected.value = next
   feedback.value = null
 }
 
@@ -154,8 +194,10 @@ function advanceQuestion(skipped = false) {
     finishGame()
     return
   }
-  questionIndex.value += 1
+  const nextQuestionIndex = questionIndex.value + 1
+  questionIndex.value = nextQuestionIndex
   selected.value = {}
+  prepareCloset(gameSet.value[nextQuestionIndex])
   feedback.value = null
   activeTab.value = 'tops'
   pinyinField.value = Math.random() < 0.5 ? 'color' : 'item'
@@ -213,7 +255,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <section v-else-if="screen === 'game'" class="game-screen">
       <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><span>♫ 音效</span><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
-      <section class="avatar-zone"><div class="body-controls" aria-hidden="true">頭<br>頸<br>身<br>褲<br>膝<br>腳</div><SpineAvatar :outfit="selected" /></section>
+      <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: Boolean(selected[control.slot]) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button><button v-if="selected[control.slot]" type="button" class="slot-clear" :aria-label="`取消${control.label}部位衣物`" @click="clearSlot(control.slot)">×</button></div></nav><SpineAvatar :outfit="selected" /></section>
       <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon" :style="garmentStyle(card, card.closetImage)"><span></span></span><small>{{ card.color }} {{ card.name }}</small></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.kind === 'success'" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
     </section>
