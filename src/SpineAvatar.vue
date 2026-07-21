@@ -53,6 +53,12 @@ const tintByColor: Partial<Record<Clothing['colorKey'], readonly [number, number
   black: [0.16, 0.17, 0.2],
 }
 
+// 泳帽使用另一張頭部／頭髮圖來替換外觀；此圖不屬於可染布料。
+const tintAttachmentsByItem: Record<string, string[]> = {
+  'head-swim-cap': ['head-swin'],
+  'head-swim-cap-yellow': ['head-swin'],
+}
+
 const selectableAttachments = [
   'head_normal', 'head_swim_cap', 'shirt', 'shorts_B', 'long_pants_B', 'skirt_B_under', 'skirt_B_over',
   'hat', 'head-swin', 'hakka_shirt_B', 'puffer_jacket_B', 'sweater_B', 'swimsuit_B', 'scarf_B',
@@ -70,7 +76,7 @@ function tintItem(itemId: string) {
   const tint = tintByColor[item.colorKey]
   if (!tint) return
 
-  for (const slotName of attachmentByItem[itemId] ?? []) {
+  for (const slotName of tintAttachmentsByItem[itemId] ?? attachmentByItem[itemId] ?? []) {
     spine.skeleton.findSlot(slotName)?.color.set(tint[0], tint[1], tint[2], 1)
   }
 }

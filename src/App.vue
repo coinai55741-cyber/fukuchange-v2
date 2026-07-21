@@ -6,7 +6,7 @@ import { dictionaryColors, dictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
-type Feedback = { kind: 'success' | 'error'; text: string } | null
+type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean } | null
 type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
 
 const screen = ref<Screen>('intro')
@@ -18,6 +18,7 @@ const selected = ref<Partial<Record<Slot, string>>>({})
 const feedback = ref<Feedback>(null)
 const completed = ref(0)
 const score = ref(0)
+const questionScores = ref<Record<string, number>>({})
 const elapsedMs = ref(0)
 const leaderboard = ref<LeaderboardResponse | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
@@ -154,6 +155,7 @@ function startGame() {
   selected.value = {}
   prepareCloset(nextGameSet[0])
   score.value = 0
+  questionScores.value = {}
   completed.value = 0
   elapsedMs.value = 0
   feedback.value = null
@@ -185,15 +187,56 @@ function resetOutfit() {
   feedback.value = null
 }
 
-function submitOutfit() {
-  const exact = requiredSlots.value.every((slot) => selected.value[slot] === currentQuestion.value.target[slot])
-  if (!exact) {
-    feedback.value = { kind: 'error', text: '還沒穿好，再試著搭配看看！請確認必要服裝與顏色。' }
-    return
+function checkOutfitContext() {
+  const question = currentQuestion.value
+  const equipped = Object.values(selected.value).map((id) => clothing.find((item) => item.id === id)).filter((item): item is Clothing => Boolean(item))
+  const tags = question?.tags ?? []
+  const isHot = tags.includes('熱')
+  const isCold = tags.includes('冷')
+  const winterItems = new Set(['羽絨衫', '膨線衫', '頸圍仔'])
+  const summerItems = new Set(['短衫', '短褲', '裙', '泅水衫'])
+
+  for (const item of equipped) {
+    if (isHot && winterItems.has(item.name)) return { match: false, seasonal: true, reason: `大熱天穿「${item.name}」會太熱，請換上夏天衣物。` }
+    if (isCold && summerItems.has(item.name)) return { match: false, seasonal: true, reason: `大冷天穿「${item.name}」會太冷，請換上保暖衣物。` }
   }
-  score.value += 10
-  completed.value += 1
-  feedback.value = { kind: 'success', text: '真會著衫！這一題獲得 10 分。' }
+
+  const stageId = question?.stageId
+  for (const item of equipped) {
+    if (stageId === 4 && (item.name === '短褲' || item.name === '裙' || ['白色', '黃色', '紅色花圖案', '柑仔色'].includes(item.color))) return { match: false, reason: '賞螢時要穿長褲並避開反光亮色，才不會被蚊子叮或嚇跑螢火蟲。' }
+    if (stageId === 8 && (['短褲', '羽絨衫', '膨線衫'].includes(item.name) || ['柑仔色', '黃色', '紅色花圖案'].includes(item.color))) return { match: false, reason: '面試要端莊專業，避免過於休閒或花俏的穿搭。' }
+    if (stageId === 9 && ['白色', '黃色', '柑仔色'].includes(item.color)) return { match: false, reason: '大掃除容易弄髒衣服，建議穿烏色或吊菜色等深色衣物。' }
+    if (stageId === 10 && ['白色', '黃色', '柑仔色'].includes(item.color)) return { match: false, reason: '美術課畫水彩容易弄髒衣服，建議穿深色或紅色花圖案。' }
+  }
+  return { match: true, seasonal: false, reason: '' }
+}
+
+function submitOutfit() {
+  const question = currentQuestion.value
+  if (!question) return
+  const equippedCount = Object.values(selected.value).filter(Boolean).length
+  const exact = requiredSlots.value.every((slot) => selected.value[slot] === question.target[slot])
+  const context = checkOutfitContext()
+  const firstAttempt = questionScores.value[question.id] === undefined
+  const tier = equippedCount === 0 || context.seasonal ? 4 : exact && context.match ? 1 : exact ? 2 : context.match ? 3 : 4
+  const points = [0, 10, 6, 4, 0][tier]
+
+  if (firstAttempt) {
+    questionScores.value = { ...questionScores.value, [question.id]: points }
+    score.value += points
+    if (tier === 1) completed.value += 1
+  }
+
+  const firstScoreText = firstAttempt ? `本題獲得 ${points} 分` : `本題首次送出已記錄 ${questionScores.value[question.id]} 分`
+  if (tier === 1) {
+    feedback.value = { kind: 'success', canAdvance: true, text: `【完全正確！${firstScoreText}】題目要求與客庄情境都搭配得很好！` }
+  } else if (tier === 2) {
+    feedback.value = { kind: 'error', canAdvance: true, text: `【題目正確、情境不符！${firstScoreText}】${context.reason} 你仍可調整後再試。` }
+  } else if (tier === 3) {
+    feedback.value = { kind: 'error', canAdvance: true, text: `【情境正確、題目不符！${firstScoreText}】本題要練習的是「${question.color ? `${question.color} 个 ` : ''}${question.item}」。` }
+  } else {
+    feedback.value = { kind: 'error', canAdvance: true, text: `【不符合要求！${firstScoreText}】${context.reason || '請確認題目指定的衣物、顏色與場合。'}` }
+  }
 }
 
 function advanceQuestion(skipped = false) {
@@ -265,8 +308,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><span>♫ 音效</span><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: Boolean(selected[control.slot]) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button><button v-if="selected[control.slot]" type="button" class="slot-clear" :aria-label="`取消${control.label}部位衣物`" @click="clearSlot(control.slot)">×</button></div></nav><SpineAvatar :outfit="selected" /></section>
-      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
-      <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.kind === 'success'" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
+      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon clothing-card-dye" :style="garmentStyle(card, card.closetImage)"><span></span></span><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
     </section>
 
     <section v-else class="result-screen">

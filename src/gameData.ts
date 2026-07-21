@@ -17,6 +17,7 @@ export type Clothing = {
 
 export type Question = {
   id: string
+  stageId?: number
   verb?: string
   context: string
   color: string
@@ -24,6 +25,7 @@ export type Question = {
   item: string
   itemPinyin: string
   target: Partial<Record<Slot, string>>
+  tags?: string[]
 }
 
 export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
@@ -154,7 +156,7 @@ function buildQuestionsFromCsv(): Question[] {
     const promptToken = targetTokens.map((token) => token.split(':')[1]).find((token) => token?.startsWith(`${promptEntity}@`))
     const promptColor = promptToken?.split('@')[1] ?? ''
     const color = colorLabels[promptColor] ?? ''
-    return [{ id: `csv-${row.stage_id}`, verb: row.stage_title.split(',')[0].trim(), context: row.context_text, color, colorPinyin: pinyinByWord[color] ?? color, item, itemPinyin: pinyinByWord[item] ?? item, target }]
+    return [{ id: `csv-${row.stage_id}`, stageId: Number(row.stage_id), verb: row.stage_title.split(',')[0].trim(), context: row.context_text, color, colorPinyin: pinyinByWord[color] ?? color, item, itemPinyin: pinyinByWord[item] ?? item, target, tags: row.must_have.split(',').map((tag) => tag.trim()).filter(Boolean) }]
   })
 }
 
