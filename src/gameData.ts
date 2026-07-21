@@ -7,7 +7,7 @@ export type Clothing = {
   id: string
   name: string
   color: string
-  colorKey: 'blue' | 'yellow' | 'white' | 'black' | 'red_flower_pattern'
+  colorKey: 'blue' | 'yellow' | 'white' | 'black' | 'orange' | 'purple' | 'red_flower_pattern'
   colorMode: 'fixed' | 'dye'
   slot: Slot
   tab: ClosetTab
@@ -37,7 +37,7 @@ export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
 
 const makeClothing = (id: string, name: string, color: Clothing['color'], colorKey: Clothing['colorKey'], slot: Slot, tab: ClosetTab, closetImage: string, wearLayers = [closetImage], colorMode: Clothing['colorMode'] = 'dye'): Clothing => ({ id, name, color, colorKey, colorMode, slot, tab, closetImage, wearLayers })
 
-export const clothing: Clothing[] = [
+const baseClothing: Clothing[] = [
   makeClothing('body-blue', '藍衫', '固定藍染', 'blue', 'body', 'tops', 'hakka_shirt_B.png', ['hakka_shirt_B.png'], 'fixed'),
   makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirt.png'),
   makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirt.png'),
@@ -64,6 +64,35 @@ export const clothing: Clothing[] = [
   makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png', ['head-swin.png'], 'fixed'),
   makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'scarf_B.png'),
   makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
+]
+
+const dyeColors: { name: string; key: Clothing['colorKey'] }[] = [
+  { name: '柑仔色', key: 'orange' },
+  { name: '吊菜色', key: 'purple' },
+  { name: '紅色花圖案', key: 'red_flower_pattern' },
+]
+
+function makeDyeVariants(prefix: string, name: string, slot: Slot, tab: ClosetTab, image: string, colors = dyeColors) {
+  return colors.map((color) => makeClothing(`${prefix}-${color.key}`, name, color.name, color.key, slot, tab, image))
+}
+
+// 現有 B 圖同時作為衣櫃圖；所有可染服裝都有橘、暗紫與花布版本。
+// 藍衫固定藍染，泅水衫／泅水帽依規則不產生紅色花圖案。
+export const clothing: Clothing[] = [
+  ...baseClothing,
+  ...makeDyeVariants('short-shirt', '短衫', 'body', 'tops', 'shirt.png'),
+  ...makeDyeVariants('puffer-jacket', '羽絨衫', 'body', 'tops', 'puffer_jacket_B.png'),
+  ...makeDyeVariants('sweater', '膨線衫', 'body', 'tops', 'sweater_B.png'),
+  ...makeDyeVariants('swimsuit', '泅水衫', 'body', 'tops', 'swimsuit_B.png', dyeColors.filter((color) => color.key !== 'red_flower_pattern')),
+  ...makeDyeVariants('long-pants', '長褲', 'pants', 'bottoms', 'long_pants_B.png'),
+  ...makeDyeVariants('shorts', '短褲', 'pants', 'bottoms', 'shorts_B.png'),
+  ...makeDyeVariants('skirt', '裙', 'pants', 'bottoms', 'skirt_B_over.png'),
+  ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png'),
+  ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png'),
+  ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
+  ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png'),
+  ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),
+  ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png', dyeColors.filter((color) => color.key !== 'red_flower_pattern')),
 ]
 
 const threePiece = (body: string, pants: string, shoes: string, extras: Partial<Record<Slot, string>> = {}) => ({ body, pants, shoes, ...extras })

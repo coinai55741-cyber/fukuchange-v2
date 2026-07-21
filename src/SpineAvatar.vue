@@ -51,6 +51,8 @@ const tintByColor: Partial<Record<Clothing['colorKey'], readonly [number, number
   yellow: [1, 0.76, 0.12],
   white: [1, 1, 1],
   black: [0.16, 0.17, 0.2],
+  orange: [0.96, 0.45, 0.12],
+  purple: [0.33, 0.14, 0.5],
 }
 
 // 泳帽使用另一張頭部／頭髮圖來替換外觀；此圖不屬於可染布料。
@@ -76,9 +78,28 @@ function tintItem(itemId: string) {
   const tint = tintByColor[item.colorKey]
   if (!tint) return
 
-  for (const slotName of tintAttachmentsByItem[itemId] ?? attachmentByItem[itemId] ?? []) {
+  const tintAttachments = itemId.startsWith('swim-cap-') ? ['head-swin'] : tintAttachmentsByItem[itemId] ?? attachmentsForItem(itemId)
+  for (const slotName of tintAttachments) {
     spine.skeleton.findSlot(slotName)?.color.set(tint[0], tint[1], tint[2], 1)
   }
+}
+
+function attachmentsForItem(itemId: string) {
+  if (attachmentByItem[itemId]) return attachmentByItem[itemId]
+  if (itemId.startsWith('short-shirt-')) return ['shirt']
+  if (itemId.startsWith('puffer-jacket-')) return ['puffer_jacket_B']
+  if (itemId.startsWith('sweater-')) return ['sweater_B']
+  if (itemId.startsWith('swimsuit-')) return ['swimsuit_B']
+  if (itemId.startsWith('long-pants-')) return ['long_pants_B']
+  if (itemId.startsWith('shorts-')) return ['shorts_B']
+  if (itemId.startsWith('skirt-')) return ['skirt_B_over']
+  if (itemId.startsWith('sneakers-')) return ['sneakers_B']
+  if (itemId.startsWith('rain-boots-')) return ['rain_boots_B']
+  if (itemId.startsWith('hat-')) return ['hat']
+  if (itemId.startsWith('scarf-')) return ['scarf_B']
+  if (itemId.startsWith('knee-protector-')) return ['knee_protector_B']
+  if (itemId.startsWith('swim-cap-')) return ['head_swim_cap', 'head-swin']
+  return []
 }
 
 function applyOutfit() {
@@ -90,13 +111,13 @@ function applyOutfit() {
   }
 
   const itemIds = Object.values(props.outfit).filter((itemId): itemId is string => Boolean(itemId))
-  const usesSwimCap = itemIds.includes('head-swim-cap') || itemIds.includes('head-swim-cap-yellow')
+  const usesSwimCap = itemIds.some((itemId) => itemId === 'head-swim-cap' || itemId === 'head-swim-cap-yellow' || itemId.startsWith('swim-cap-'))
 
   spine.skeleton.setAttachment('body_base', 'body_base')
   if (!usesSwimCap) spine.skeleton.setAttachment('head_normal', 'head_normal')
 
   for (const itemId of itemIds) {
-    for (const attachment of attachmentByItem[itemId] ?? []) spine.skeleton.setAttachment(attachment, attachment)
+    for (const attachment of attachmentsForItem(itemId)) spine.skeleton.setAttachment(attachment, attachment)
     tintItem(itemId)
   }
 

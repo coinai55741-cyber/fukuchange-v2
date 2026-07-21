@@ -100,6 +100,8 @@ const colorMap: Record<Clothing['colorKey'], string> = {
   yellow: '#f0be35',
   white: '#f8f2e8',
   black: '#36383d',
+  orange: '#f47a21',
+  purple: '#542480',
   red_flower_pattern: '#dc2626',
 }
 
@@ -308,7 +310,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><span>♫ 音效</span><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p><div class="scene-placeholder">任務場景假圖</div></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: Boolean(selected[control.slot]) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button><button v-if="selected[control.slot]" type="button" class="slot-clear" :aria-label="`取消${control.label}部位衣物`" @click="clearSlot(control.slot)">×</button></div></nav><SpineAvatar :outfit="selected" /></section>
-      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><span class="clothing-icon clothing-card-dye" :style="garmentStyle(card, card.closetImage)"><span></span></span><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><i class="closet-color-swatch" :class="{ pattern: card.colorKey === 'red_flower_pattern' }" :style="{ '--swatch-color': colorMap[card.colorKey] }"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></button></div><div class="closet-footer"><strong>完成搭配 {{ completedForQuestion }}/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
     </section>
 
