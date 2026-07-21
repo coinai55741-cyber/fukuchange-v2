@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { clothing, questions, tabs, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
+import { dictionaryColors, dictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
@@ -22,6 +23,8 @@ const leaderboard = ref<LeaderboardResponse | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
 const selectedDialect = ref<Dialect>('hak-sihien')
 const closetItemIds = ref<Record<ClosetTab, string[]>>({ tops: [], bottoms: [], shoes: [], accessories: [] })
+const dictionaryOpen = ref(false)
+const dictionarySearch = ref('')
 let timer: number | undefined
 
 const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[] = [
@@ -54,6 +57,11 @@ const isPinyinQuestion = computed(() => phase.value === 2)
 const targetIds = computed(() => Object.values(currentQuestion.value?.target ?? {}))
 const requiredSlots = computed(() => Object.keys(currentQuestion.value?.target ?? []) as Slot[])
 const completedForQuestion = computed(() => requiredSlots.value.filter((slot) => selected.value[slot]).length)
+const filteredDictionaryItems = computed(() => {
+  const query = dictionarySearch.value.trim().toLowerCase()
+  if (!query) return dictionaryItems
+  return dictionaryItems.filter((item) => `${item.name} ${item.pinyin} ${item.translation} ${item.description}`.toLowerCase().includes(query))
+})
 
 const questionText = computed(() => {
   const question = currentQuestion.value
@@ -238,6 +246,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
     </section>
 
     <section v-else-if="screen === 'lobby'" class="lobby-screen">
+      <button class="dictionary-launch" @click="dictionaryOpen = true">📖 穿搭小詞典<br><small>衣櫃與客語單字</small></button>
       <div class="lobby-card">
         <p class="eyebrow">✧ 阿梅的穿搭冒險</p><h1>歡迎來到 <span>穿搭小達人！</span></h1>
         <section class="lobby-info" aria-label="遊戲說明">
@@ -263,6 +272,15 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <section v-else class="result-screen">
       <div class="result-card"><p class="eyebrow">成績結算</p><h1>{{ score === 100 ? '完美穿搭師' : score >= 60 ? '時尚觀察員' : '穿搭初學者' }}</h1><p>總分 {{ score }} 分　・　花費時間 {{ formatTime(elapsedMs) }}</p><p class="result-comment">{{ score === 100 ? '無懈可擊！你的搭配精準符合所有環境限制。' : '多觀察天氣與場合，再試一次一定會更好！' }}</p><button class="primary" @click="replay">重玩一次</button></div>
       <section class="ranking-card"><h2>排行榜 <small>Mock 資料</small></h2><div class="rank-head"><span>排名</span><span>學員</span><span>分數</span><span>計時</span></div><div v-for="entry in leaderboard?.entries" :key="`${entry.rank}-${entry.displayName}`" class="rank-row" :class="{ mine: entry.displayName === '測○○' }"><span>{{ entry.rank }}</span><span>{{ entry.displayName }}</span><span>{{ entry.score }}</span><span>{{ formatTime(entry.elapsedMs) }}</span></div><p class="rank-foot">目前共 {{ leaderboard?.participantCount ?? 0 }} 人參加，共玩 {{ leaderboard?.playCount ?? 0 }} 次</p></section>
+    </section>
+
+    <section v-if="dictionaryOpen" class="dictionary-overlay" role="dialog" aria-modal="true" aria-label="穿搭小詞典" @click.self="dictionaryOpen = false">
+      <article class="dictionary-modal">
+        <header><div><h2>📖 客庄衣著小詞典</h2><p>學習正宗客家穿衣名詞與發音</p></div><button aria-label="關閉詞典" @click="dictionaryOpen = false">×</button></header>
+        <div class="dictionary-search"><span>⌕</span><input v-model="dictionarySearch" placeholder="搜尋客語名詞、華語翻譯或拼音…"><button v-if="dictionarySearch" @click="dictionarySearch = ''">重設</button></div>
+        <div class="dictionary-content"><div v-if="filteredDictionaryItems.length" class="dictionary-grid"><article v-for="item in filteredDictionaryItems" :key="item.name" class="dictionary-item"><div class="dictionary-image"><img :src="assetUrl(item.image)" :alt="item.name"></div><div><b>{{ item.name }}</b><p class="dictionary-pinyin">拼音：{{ item.pinyin }}</p><p>釋義：{{ item.translation }}</p><p class="dictionary-knowledge"><span>小知識</span>{{ item.description }}</p></div></article></div><p v-else class="dictionary-empty">找不到「{{ dictionarySearch }}」相關詞彙。</p><section class="dictionary-colors"><h3>🎨 客語顏色名詞</h3><div><article v-for="color in dictionaryColors" :key="color.name"><i :class="{ pattern: color.pattern }" :style="{ '--color': color.hex }"></i><p class="dictionary-pinyin">{{ color.pinyin }}</p><b>{{ color.name }}</b><small>（{{ color.translation }}）</small></article></div></section></div>
+        <footer><button class="secondary" @click="dictionaryOpen = false">關閉詞典</button></footer>
+      </article>
     </section>
   </main>
 </template>
