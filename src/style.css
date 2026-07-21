@@ -44,6 +44,7 @@
 .body-control > button:first-child:hover, .body-control > button:first-child.equipped { background: #e5f2fa; color: #377fa6; }
 .slot-clear { width: 1.15rem; height: 1.15rem; padding: 0; border-radius: 50%; color: white; background: #dc756b; font-weight: 900; line-height: 1; }
 .clothing-card { display: grid; place-items: center; min-height: 92px; }
+.clothing-card-image { display: block; width: 100%; height: 74px; object-fit: contain; }
 .dictionary-launch { position: fixed; z-index: 4; left: max(1.5rem, calc(50% - 540px)); top: 50%; transform: translateY(-50%); padding: .75rem 1rem; border-radius: 14px; color: #fff; background: #078172; box-shadow: 0 5px 16px #2544; font-weight: 900; text-align: left; }
 .dictionary-launch small { color: #d5f5ef; font-size: .72rem; font-weight: 600; }
 .dictionary-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 2rem; background: #17203399; backdrop-filter: blur(3px); }
