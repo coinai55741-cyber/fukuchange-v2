@@ -56,8 +56,17 @@ const currentQuestion = computed(() => gameSet.value[questionIndex.value])
 const phase = computed(() => questionIndex.value < 5 ? 1 : 2)
 const isPinyinQuestion = computed(() => phase.value === 2)
 const targetIds = computed(() => Object.values(currentQuestion.value?.target ?? {}))
-const requiredSlots = computed(() => Object.keys(currentQuestion.value?.target ?? []) as Slot[])
-const completedForQuestion = computed(() => requiredSlots.value.filter((slot) => selected.value[slot]).length)
+const promptTargetId = computed(() => {
+  const question = currentQuestion.value
+  if (!question) return undefined
+  return Object.values(question.target).find((id) => {
+    const item = clothing.find((entry) => entry.id === id)
+    return item?.name === question.item && (!question.color || item.color === question.color)
+  })
+})
+const promptTargetItem = computed(() => clothing.find((item) => item.id === promptTargetId.value))
+const requiredSlots = computed(() => promptTargetItem.value ? [promptTargetItem.value.slot] : [])
+const completedForQuestion = computed(() => promptTargetItem.value && selected.value[promptTargetItem.value.slot] === promptTargetItem.value.id ? 1 : 0)
 const filteredDictionaryItems = computed(() => {
   const query = dictionarySearch.value.trim().toLowerCase()
   if (!query) return dictionaryItems
@@ -217,10 +226,12 @@ function submitOutfit() {
   const question = currentQuestion.value
   if (!question) return
   const equippedCount = Object.values(selected.value).filter(Boolean).length
-  const exact = requiredSlots.value.every((slot) => selected.value[slot] === question.target[slot])
+  const promptMatch = promptTargetItem.value != null && selected.value[promptTargetItem.value.slot] === promptTargetItem.value.id
   const context = checkOutfitContext()
   const firstAttempt = questionScores.value[question.id] === undefined
-  const tier = equippedCount === 0 || context.seasonal ? 4 : exact && context.match ? 1 : exact ? 2 : context.match ? 3 : 4
+  // ZIP 規則：題目指定的一個「顏色＋物件」決定題目對錯；整套穿著檢查情境。
+  // 未答對題目但沒有季節衝突，仍是第 3 階（4 分）。
+  const tier = equippedCount === 0 || context.seasonal ? 4 : promptMatch && context.match ? 1 : promptMatch ? 2 : 3
   const points = [0, 10, 6, 4, 0][tier]
 
   if (firstAttempt) {
@@ -235,7 +246,7 @@ function submitOutfit() {
   } else if (tier === 2) {
     feedback.value = { kind: 'error', canAdvance: true, text: `【題目正確、情境不符！${firstScoreText}】${context.reason} 你仍可調整後再試。` }
   } else if (tier === 3) {
-    feedback.value = { kind: 'error', canAdvance: true, text: `【情境正確、題目不符！${firstScoreText}】本題要練習的是「${question.color ? `${question.color} 个 ` : ''}${question.item}」。` }
+    feedback.value = { kind: 'error', canAdvance: true, text: `【題目不符！${firstScoreText}】本題要練習的是「${question.color ? `${question.color} 个 ` : ''}${question.item}」；請再檢查指定物件。` }
   } else {
     feedback.value = { kind: 'error', canAdvance: true, text: `【不符合要求！${firstScoreText}】${context.reason || '請確認題目指定的衣物、顏色與場合。'}` }
   }
