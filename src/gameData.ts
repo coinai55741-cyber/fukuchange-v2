@@ -36,27 +36,32 @@ export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
 const makeClothing = (id: string, name: string, color: Clothing['color'], colorKey: Clothing['colorKey'], slot: Slot, tab: ClosetTab, closetImage: string, wearLayers = [closetImage], colorMode: Clothing['colorMode'] = 'dye'): Clothing => ({ id, name, color, colorKey, colorMode, slot, tab, closetImage, wearLayers })
 
 export const clothing: Clothing[] = [
-  makeClothing('body-blue', '藍衫', '固定藍染', 'blue', 'body', 'tops', 'Hakka-shirt.png', ['Hakka-shirt.png'], 'fixed'),
-  makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirtB.png'),
-  makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirtB.png'),
-  makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirtB.png'),
+  makeClothing('body-blue', '藍衫', '固定藍染', 'blue', 'body', 'tops', 'hakka_shirt_B.png', ['hakka_shirt_B.png'], 'fixed'),
+  makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirt.png'),
+  makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirt.png'),
+  makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirt.png'),
   // 紅色花圖案只提供給允許的日常衣物；藍衫與泅水衫不可生成此配色。
-  makeClothing('body-flower', '短衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'shirtB.png'),
-  makeClothing('pants-black', '長褲', '烏色', 'black', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
-  makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
-  makeClothing('pants-shorts-white', '短褲', '白色', 'white', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
-  makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'Skirt.png', ['SkirtB.png']),
-  makeClothing('pants-blue', '長褲', '藍色', 'blue', 'pants', 'bottoms', 'Pants.png', ['PantsB.png']),
-  makeClothing('pants-flower', '短褲', '紅色花圖案', 'red_flower_pattern', 'pants', 'bottoms', 'ShortsA.png', ['ShortsB.png']),
-  makeClothing('shoes-white', '鞋', '白色', 'white', 'shoes', 'shoes', 'ShoeA.png', ['ShoesB.png']),
-  makeClothing('shoes-black', '鞋', '烏色', 'black', 'shoes', 'shoes', 'ShoeA.png', ['ShoesB.png']),
-  makeClothing('shoes-rain', '水靴筒', '黃色', 'yellow', 'shoes', 'shoes', 'Rain-bootsA.png', ['Rain-bootsB.png']),
+  makeClothing('body-flower', '短衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'shirt.png'),
+  makeClothing('body-puffer-white', '羽絨衫', '白色', 'white', 'body', 'tops', 'puffer_jacket_B.png'),
+  makeClothing('body-sweater-white', '膨線衫', '白色', 'white', 'body', 'tops', 'sweater_B.png'),
+  makeClothing('body-swimsuit-yellow', '泅水衫', '黃色', 'yellow', 'body', 'tops', 'swimsuit_B.png'),
+  makeClothing('pants-black', '長褲', '烏色', 'black', 'pants', 'bottoms', 'long_pants_B.png'),
+  makeClothing('pants-long-white', '長褲', '白色', 'white', 'pants', 'bottoms', 'long_pants_B.png'),
+  makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'shorts_B.png'),
+  makeClothing('pants-shorts-white', '短褲', '白色', 'white', 'pants', 'bottoms', 'shorts_B.png'),
+  makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'skirt_B_over.png'),
+  makeClothing('pants-blue', '長褲', '藍色', 'blue', 'pants', 'bottoms', 'long_pants_B.png'),
+  makeClothing('pants-flower', '短褲', '紅色花圖案', 'red_flower_pattern', 'pants', 'bottoms', 'shorts_B.png'),
+  makeClothing('shoes-white', '鞋', '白色', 'white', 'shoes', 'shoes', 'sneakers_B.png'),
+  makeClothing('shoes-black', '鞋', '烏色', 'black', 'shoes', 'shoes', 'sneakers_B.png'),
+  makeClothing('shoes-rain', '水靴筒', '黃色', 'yellow', 'shoes', 'shoes', 'rain_boots_B.png'),
   makeClothing('head-yellow', '帽仔', '黃色', 'yellow', 'head', 'accessories', 'hat.png'),
   makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
   // 泳帽在角色端會同時啟用替換頭部與帽體；衣櫃使用 A 圖。
-  makeClothing('head-swim-cap', '泳帽', '藍色', 'blue', 'head', 'accessories', 'head-swinA.png'),
-  makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'ScarfB.png'),
-  makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'Knee-length-socks.png'),
+  makeClothing('head-swim-cap', '泳帽', '藍色', 'blue', 'head', 'accessories', 'head-swin.png'),
+  makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png', ['head-swin.png'], 'fixed'),
+  makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'scarf_B.png'),
+  makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
 ]
 
 const threePiece = (body: string, pants: string, shoes: string, extras: Partial<Record<Slot, string>> = {}) => ({ body, pants, shoes, ...extras })
@@ -109,9 +114,10 @@ function parseCsv(raw: string): CsvRow[] {
 
 const targetItemIds: Record<string, string> = {
   'hakka_shirt@none': 'body-blue', 'short_shirt@yellow': 'body-yellow', 'short_shirt@white': 'body-white', 'short_shirt@black': 'body-black',
-  'shorts@yellow': 'pants-yellow', 'shorts@white': 'pants-shorts-white', 'long_pants@black': 'pants-black', 'skirt@white': 'pants-white',
+  'shorts@yellow': 'pants-yellow', 'shorts@white': 'pants-shorts-white', 'long_pants@black': 'pants-black', 'long_pants@white': 'pants-long-white', 'skirt@white': 'pants-white',
   'shoes@white': 'shoes-white', 'shoes@black': 'shoes-black', 'rain_boots@yellow': 'shoes-rain',
-  'hat@yellow': 'head-yellow', 'hat@black': 'head-black', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white',
+  'hat@yellow': 'head-yellow', 'hat@black': 'head-black', 'swim_cap@yellow': 'head-swim-cap-yellow', 'swimsuit@yellow': 'body-swimsuit-yellow',
+  'puffer_jacket@white': 'body-puffer-white', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white',
 }
 
 const slotByEntity: Record<string, Slot> = {

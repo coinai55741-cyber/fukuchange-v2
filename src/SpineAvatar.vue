@@ -21,7 +21,11 @@ const attachmentByItem: Record<string, string[]> = {
   'body-white': ['shirt'],
   'body-black': ['shirt'],
   'body-flower': ['shirt'],
+  'body-puffer-white': ['puffer_jacket_B'],
+  'body-sweater-white': ['sweater_B'],
+  'body-swimsuit-yellow': ['swimsuit_B'],
   'pants-black': ['long_pants_B'],
+  'pants-long-white': ['long_pants_B'],
   'pants-blue': ['long_pants_B'],
   'pants-yellow': ['shorts_B'],
   'pants-shorts-white': ['shorts_B'],
@@ -35,6 +39,7 @@ const attachmentByItem: Record<string, string[]> = {
   'head-black': ['hat'],
   // 泳帽是「替換頭部」加上「泳帽本體」的組合，兩個 Spine attachment 必須同時開啟。
   'head-swim-cap': ['head_swim_cap', 'head-swin'],
+  'head-swim-cap-yellow': ['head_swim_cap', 'head-swin'],
   'neck-white': ['scarf_B'],
   'knee-yellow': ['knee_protector_B'],
 }
@@ -79,7 +84,7 @@ function applyOutfit() {
   }
 
   const itemIds = Object.values(props.outfit).filter((itemId): itemId is string => Boolean(itemId))
-  const usesSwimCap = itemIds.includes('head-swim-cap')
+  const usesSwimCap = itemIds.includes('head-swim-cap') || itemIds.includes('head-swim-cap-yellow')
 
   spine.skeleton.setAttachment('body_base', 'body_base')
   if (!usesSwimCap) spine.skeleton.setAttachment('head_normal', 'head_normal')
