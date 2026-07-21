@@ -83,14 +83,12 @@ const questionText = computed(() => {
 })
 
 const seasonWeatherLabel = computed(() => {
-  const id = currentQuestion.value?.id
-  const labels: Record<string, string> = {
-    q01: '☀️ 夏天／熱', q02: '☀️ 夏天／熱', q03: '☀️ 夏天／熱', q04: '☀️ 夏天／熱（晚上）', q05: '☀️ 夏天／熱・下雨',
-    q06: '☀️ 夏天／熱', q07: '❄️ 冬天／冷', q08: '☀️ 夏天／熱', q09: '❄️ 冬天／冷・下雨', q10: '❄️ 冬天／冷',
-    q11: '☀️ 夏天／熱', q12: '☀️ 夏天／熱・下雨', q13: '❄️ 冬天／冷', q14: '☀️ 夏天／熱', q15: '❄️ 冬天／冷・下雨',
-    q16: '☀️ 夏天／熱', q17: '❄️ 冬天／冷', q18: '☀️ 夏天／熱', q19: '❄️ 冬天／冷', q20: '❄️ 冬天／冷',
-  }
-  return id ? labels[id] ?? '☀️ 夏天／熱' : ''
+  const tags = currentQuestion.value?.tags ?? []
+  if (!currentQuestion.value) return ''
+  const season = tags.includes('冷') ? '❄️ 冬天／冷' : '☀️ 夏天／熱'
+  const rain = tags.includes('雨') || tags.includes('下雨') ? '・下雨' : ''
+  const night = tags.includes('暗') ? '（晚上）' : ''
+  return `${season}${rain}${night}`
 })
 
 const closetCards = computed(() => closetItemIds.value[activeTab.value]
@@ -240,7 +238,9 @@ function submitOutfit() {
     if (tier === 1) completed.value += 1
   }
 
-  const firstScoreText = firstAttempt ? `本題獲得 ${points} 分` : `本題首次送出已記錄 ${questionScores.value[question.id]} 分`
+  const firstScoreText = firstAttempt
+    ? `本題獲得 ${points} 分`
+    : `本次判定第 ${tier} 階／${points} 分；首次分數已保留 ${questionScores.value[question.id]} 分`
   if (tier === 1) {
     feedback.value = { kind: 'success', canAdvance: true, text: `【完全正確！${firstScoreText}】題目要求與客庄情境都搭配得很好！` }
   } else if (tier === 2) {
