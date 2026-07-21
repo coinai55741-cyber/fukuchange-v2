@@ -10,10 +10,6 @@ const props = defineProps<{
 
 const host = ref<HTMLDivElement | null>(null)
 
-const showFlowerShirt = computed(() => {
-  const bodyItem = props.outfit.body ? clothingById.get(props.outfit.body) : undefined
-  return bodyItem?.name === '短衫' && bodyItem.colorKey === 'red_flower_pattern'
-})
 
 const spineAssets = {
   skeleton: 'girl-skeleton',
@@ -27,13 +23,16 @@ const attachmentByItem: Record<string, string[]> = {
   'body-black': ['shirt'],
   'body-flower': ['shirt'],
   'body-puffer-white': ['puffer_jacket_B'],
+  'body-puffer-black': ['puffer_jacket_B'],
   'body-sweater-white': ['sweater_B'],
   'body-swimsuit-yellow': ['swimsuit_B'],
   'pants-black': ['long_pants_B'],
   'pants-long-white': ['long_pants_B'],
+  'pants-long-yellow': ['long_pants_B'],
   'pants-blue': ['long_pants_B'],
   'pants-yellow': ['shorts_B'],
   'pants-shorts-white': ['shorts_B'],
+  'pants-shorts-black': ['shorts_B'],
   'pants-flower': ['shorts_B'],
   // 目前匯出的 skirt_B_under / skirt_B_over 使用同一張裙子圖，先只顯示前層版本，避免重複變深。
   'pants-white': ['skirt_B_over'],
@@ -42,6 +41,7 @@ const attachmentByItem: Record<string, string[]> = {
   'shoes-rain': ['rain_boots_B'],
   'head-yellow': ['hat'],
   'head-black': ['hat'],
+  'head-white': ['hat'],
   // 泳帽是「替換頭部」加上「泳帽本體」的組合，兩個 Spine attachment 必須同時開啟。
   'head-swim-cap': ['head_swim_cap', 'head-swin'],
   'head-swim-cap-yellow': ['head_swim_cap', 'head-swin'],
@@ -70,6 +70,10 @@ const selectableAttachments = [
   'head_normal', 'head_swim_cap', 'shirt', 'shorts_B', 'long_pants_B', 'skirt_B_under', 'skirt_B_over',
   'hat', 'head-swin', 'hakka_shirt_B', 'puffer_jacket_B', 'sweater_B', 'swimsuit_B', 'scarf_B',
   'sneakers_B', 'rain_boots_B', 'knee_protector_B',
+  // 客家花布服裝插槽 (Skins / 獨立插槽)
+  'shirt_hakka', 'shorts_B_hakka', 'long_pants_B_hakka', 'skirt_B_under_hakka', 'skirt_B_over_hakka',
+  'hat_hakka', 'head-swin_hakka', 'puffer_jacket_B_hakka', 'sweater_B_hakka', 'swimsuit_B_hakka',
+  'scarf_B_hakka', 'knee_protector_B_hakka', 'sneakers_B_hakka', 'rain_boots_B_hakka',
 ]
 
 let app: Application | null = null
@@ -89,22 +93,62 @@ function tintItem(itemId: string) {
   }
 }
 
+function isFlowerItem(itemId: string) {
+  return itemId.endsWith('-red_flower_pattern') || itemId === 'body-flower' || itemId === 'pants-flower'
+}
+
 function attachmentsForItem(itemId: string) {
-  if (attachmentByItem[itemId]) return attachmentByItem[itemId]
-  if (itemId.startsWith('short-shirt-')) return ['shirt']
-  if (itemId.startsWith('puffer-jacket-')) return ['puffer_jacket_B']
-  if (itemId.startsWith('sweater-')) return ['sweater_B']
-  if (itemId.startsWith('swimsuit-')) return ['swimsuit_B']
-  if (itemId.startsWith('long-pants-')) return ['long_pants_B']
-  if (itemId.startsWith('shorts-')) return ['shorts_B']
-  if (itemId.startsWith('skirt-')) return ['skirt_B_over']
-  if (itemId.startsWith('sneakers-')) return ['sneakers_B']
-  if (itemId.startsWith('rain-boots-')) return ['rain_boots_B']
-  if (itemId.startsWith('hat-')) return ['hat']
-  if (itemId.startsWith('scarf-')) return ['scarf_B']
-  if (itemId.startsWith('knee-protector-')) return ['knee_protector_B']
-  if (itemId.startsWith('swim-cap-')) return ['head_swim_cap', 'head-swin']
+  const isHakka = isFlowerItem(itemId)
+  const suffix = isHakka ? '_hakka' : ''
+
+  if (attachmentByItem[itemId]) {
+    if (itemId === 'body-flower') return ['shirt_hakka']
+    if (itemId === 'pants-flower') return ['shorts_B_hakka']
+    return attachmentByItem[itemId]
+  }
+
+  if (itemId.startsWith('short-shirt-')) return [isHakka ? 'shirt_hakka' : 'shirt']
+  if (itemId.startsWith('puffer-jacket-')) return [`puffer_jacket_B${suffix}`]
+  if (itemId.startsWith('sweater-')) return [`sweater_B${suffix}`]
+  if (itemId.startsWith('swimsuit-')) return [`swimsuit_B${suffix}`]
+  if (itemId.startsWith('long-pants-')) return [`long_pants_B${suffix}`]
+  if (itemId.startsWith('shorts-')) return [`shorts_B${suffix}`]
+  if (itemId.startsWith('skirt-')) return [`skirt_B_over${suffix}`]
+  if (itemId.startsWith('sneakers-')) return [`sneakers_B${suffix}`]
+  if (itemId.startsWith('rain-boots-')) return [`rain_boots_B${suffix}`]
+  if (itemId.startsWith('hat-')) return [`hat${suffix}`]
+  if (itemId.startsWith('scarf-')) return [`scarf_B${suffix}`]
+  if (itemId.startsWith('knee-protector-')) return [`knee_protector_B${suffix}`]
+  if (itemId.startsWith('swim-cap-')) return [`head_swim_cap${suffix}`, `head-swin${suffix}`]
   return []
+}
+
+function adjustDrawOrder() {
+  if (!spine) return
+  const drawOrder = spine.skeleton.drawOrder
+
+  // Desired relative draw order:
+  // knee_protector -> sneakers/rain_boots -> skirt_B_over -> hakka_shirt_B (藍衫) -> puffer_jacket_B (羽絨衣)
+  const slotsToMove = [
+    'knee_protector_B', 'knee_protector_B_hakka',
+    'sneakers_B', 'sneakers_B_hakka',
+    'rain_boots_B', 'rain_boots_B_hakka',
+    'skirt_B_over', 'skirt_B_over_hakka',
+    'hakka_shirt_B',
+    'puffer_jacket_B', 'puffer_jacket_B_hakka'
+  ]
+
+  const extracted = drawOrder.filter(s => slotsToMove.includes(s.data.name))
+  extracted.sort((a, b) => {
+    return slotsToMove.indexOf(a.data.name) - slotsToMove.indexOf(b.data.name)
+  })
+
+  const firstIdx = drawOrder.findIndex(s => slotsToMove.includes(s.data.name))
+  if (firstIdx !== -1) {
+    const filtered = drawOrder.filter(s => !slotsToMove.includes(s.data.name))
+    filtered.splice(firstIdx, 0, ...extracted)
+    spine.skeleton.drawOrder = filtered
+  }
 }
 
 function applyOutfit() {
@@ -125,6 +169,8 @@ function applyOutfit() {
     for (const attachment of attachmentsForItem(itemId)) spine.skeleton.setAttachment(attachment, attachment)
     tintItem(itemId)
   }
+
+  adjustDrawOrder()
 
   spine.skeleton.updateWorldTransform(Physics.none)
 }
@@ -159,19 +205,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="host" class="spine-avatar" aria-label="阿梅角色換裝預覽">
-    <div v-if="showFlowerShirt" class="flower-shirt-overlay" aria-hidden="true">
-      <i></i>
-      <img src="/images/shirt_detail.png" alt="">
-    </div>
-  </div>
+  <div ref="host" class="spine-avatar" aria-label="阿梅角色換裝預覽"></div>
 </template>
 
 <style scoped>
-.spine-avatar { position: relative; width: 360px; height: 570px; display: grid; place-items: center; }
+.spine-avatar { position: relative; width: 360px; height: 570px; min-width: 360px; min-height: 570px; display: grid; place-items: center; }
 .spine-avatar :deep(canvas) { display: block; width: 360px; height: 570px; }
-.flower-shirt-overlay { position: absolute; z-index: 2; left: 78px; top: 222px; width: 204px; height: 173px; pointer-events: none; }
-.flower-shirt-overlay i, .flower-shirt-overlay img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
-.flower-shirt-overlay i { background-color: #d94150; background-image: url('/images/red_flower_pattern.svg'); background-repeat: repeat; background-size: 30px 30px; -webkit-mask-image: url('/images/shirt_mask.png'); mask-image: url('/images/shirt_mask.png'); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
-.flower-shirt-overlay img { mix-blend-mode: multiply; }
+
 </style>

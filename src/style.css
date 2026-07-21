@@ -59,3 +59,120 @@
 .dictionary-modal h2, .dictionary-modal header p { margin: 0; }.dictionary-modal header p { margin-top: .15rem; color: #d5f5ef; font-size: .8rem; }.dictionary-modal header button { color: white; background: transparent; font-size: 1.7rem; }
 .dictionary-search { display: flex; gap: .5rem; align-items: center; padding: .8rem 1rem; border-bottom: 1px solid #e5e7eb; background: #f8fafc; color: #94a3b8; }.dictionary-search input { flex: 1; min-width: 0; padding: .65rem; border: 1px solid #dbe3eb; border-radius: 10px; font: inherit; }.dictionary-search button { padding: .55rem .7rem; border-radius: 8px; color: #64748b; background: #e8eef3; }
 .dictionary-content { overflow: auto; padding: 1rem; }.dictionary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }.dictionary-item { display: flex; gap: .8rem; padding: .9rem; border: 1px solid #e5edf2; border-radius: 13px; color: #334155; }.dictionary-item b { font-size: 1.05rem; }.dictionary-item p { margin: .2rem 0; font-size: .83rem; line-height: 1.45; }.dictionary-image { flex: 0 0 64px; height: 64px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: #f5f8fa; }.dictionary-image img { max-width: 92%; max-height: 92%; object-fit: contain; }.dictionary-pinyin { color: #c75d18; font-weight: 900; }.dictionary-knowledge { margin-top: .5rem !important; padding-top: .5rem; border-top: 1px solid #edf1f3; }.dictionary-knowledge span { display: inline-block; margin-right: .35rem; padding: .1rem .35rem; border-radius: 5px; color: #0c8175; background: #e8fbf8; font-size: .68rem; font-weight: 900; }.dictionary-empty { padding: 3rem; color: #94a3b8; text-align: center; }.dictionary-colors { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; }.dictionary-colors h3 { margin: 0 0 .65rem; font-size: 1rem; }.dictionary-colors > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; }.dictionary-colors article { padding: .55rem; border: 1px solid #e5edf2; border-radius: 10px; }.dictionary-colors i { float: left; width: 18px; height: 18px; margin: .15rem .45rem 0 0; border: 1px solid #ccd6df; border-radius: 50%; background: var(--color); }.dictionary-colors i.pattern { background-color: var(--color); background-image: radial-gradient(#ffd1e5 1.5px, transparent 1.5px); background-size: 5px 5px; }.dictionary-colors p { margin: 0; font-size: .72rem; }.dictionary-colors b, .dictionary-colors small { display: block; font-size: .75rem; }.dictionary-colors small { color: #94a3b8; }.dictionary-modal footer { padding: .8rem 1rem; text-align: right; border-top: 1px solid #e5e7eb; background: #f8fafc; }
+
+/* Intro Story Characters Styling (Half-body clipping, scaled up by 50%) */
+.story-character-container {
+  z-index: 1;
+  position: absolute;
+  left: 8%;
+  bottom: 0;
+  height: 75vh;
+  width: 450px;
+  overflow: hidden; /* Clean waist crop, preventing visual breaks */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.story-character-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top center;
+  transform: scale(1.5) translateY(18%); /* Scale up by 50% and shift down to keep waist cropped */
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12));
+  transition: transform 0.3s ease;
+}
+.story-character-img.worried {
+  transform: scale(1.5) translateY(18%) rotate(-3deg);
+}
+.story-character-img.surprised {
+  transform: scale(1.5) translateY(18%) scale(1.06) translateY(-4px);
+}
+
+/* Body Controls Panel (Left Slots Box) Styling */
+.body-controls {
+  position: absolute;
+  left: 20px !important;
+  top: 13% !important;
+  padding: 14px 10px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 2px solid #bcd1df !important;
+  border-radius: 16px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  z-index: 10 !important;
+  line-height: normal !important;
+}
+
+.body-control {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: auto !important;
+}
+
+.body-control > button:first-child {
+  width: auto !important;
+  padding: 5px 12px !important;
+  border-radius: 8px !important;
+  color: #377fa6 !important;
+  background: #f0f7fc !important;
+  border: 1px solid #cce3f0 !important;
+  font-weight: 900 !important;
+  font-size: 0.9rem !important;
+  text-align: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.body-control > button:first-child:hover, 
+.body-control > button:first-child.equipped {
+  background: #377fa6 !important;
+  color: white !important;
+  border-color: #377fa6 !important;
+}
+
+.slot-clear {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  color: white !important;
+  background: #dc756b !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 0.95rem !important;
+}
+
+/* Responsive Avatar Positioning & Scaling (Feet on floor) */
+.avatar-zone {
+  position: absolute !important;
+  left: 33% !important;
+  right: 34% !important;
+  top: 13% !important;
+  bottom: 8% !important; /* Fixed bottom anchoring to keep feet on floor */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.avatar {
+  width: 340px !important;
+  height: 560px !important;
+  position: relative !important;
+  overflow: visible !important;
+  display: block !important;
+  transform-origin: bottom center !important;
+  transform: scale(calc(min(1.35, max(0.85, 1 + (100vh - 840px) / 840)))) !important;
+}
+
+/* Count error (numerator turns red when exceeded) */
+.count-error {
+  color: #ef4444 !important;
+  font-weight: 900 !important;
+}
+
