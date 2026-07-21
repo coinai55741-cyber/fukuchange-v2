@@ -61,7 +61,8 @@ const baseClothing: Clothing[] = [
   makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
   // 泳帽在角色端會同時啟用替換頭部與帽體；衣櫃使用 A 圖。
   makeClothing('head-swim-cap', '泳帽', '藍色', 'blue', 'head', 'accessories', 'head-swin.png'),
-  makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png', ['head-swin.png'], 'fixed'),
+  // 舊題庫仍會指定這個黃色泳帽；必須和新版 swim-cap-* 一樣走可染色的帽體 slot。
+  makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png'),
   makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'scarf_B.png'),
   makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
 ]
