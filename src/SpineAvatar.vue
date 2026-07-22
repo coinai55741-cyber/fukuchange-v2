@@ -79,6 +79,10 @@ const selectableAttachments = [
 let app: Application | null = null
 let spine: Spine | null = null
 
+function publicAssetUrl(file: string) {
+  return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}`
+}
+
 function tintItem(itemId: string) {
   const item = clothingById.get(itemId)
   if (!spine || !item || item.colorMode !== 'dye') return
@@ -178,8 +182,8 @@ function applyOutfit() {
 onMounted(async () => {
   if (!host.value) return
 
-  Assets.add({ alias: spineAssets.skeleton, src: '/spine/正面_角色架構.json' })
-  Assets.add({ alias: spineAssets.atlas, src: '/spine/正面_角色架構.atlas' })
+  Assets.add({ alias: spineAssets.skeleton, src: publicAssetUrl('spine/正面_角色架構.json') })
+  Assets.add({ alias: spineAssets.atlas, src: publicAssetUrl('spine/正面_角色架構.atlas') })
   await Assets.load([spineAssets.skeleton, spineAssets.atlas])
 
   app = new Application()

@@ -134,7 +134,7 @@ const gameBackgroundStyle = computed(() => {
   }
 
   return {
-    backgroundImage: `url('/images-items/${bgImage}')`,
+    backgroundImage: `url("${publicAssetUrl(`images-items/${bgImage}`)}")`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat'
@@ -162,8 +162,12 @@ const colorMap: Record<Clothing['colorKey'], string> = {
   red_flower_pattern: '#dc2626',
 }
 
+function publicAssetUrl(file: string) {
+  return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}`
+}
+
 function assetUrl(file: string) {
-  return `/images/${file}`
+  return publicAssetUrl(`images/${file}`)
 }
 
 function garmentStyle(item: Clothing, layer = item.wearLayers[0]) {
@@ -286,9 +290,9 @@ const soundEnabled = ref(true)
 function playSound(name: 'click' | 'false' | 'next') {
   if (!soundEnabled.value) return
   const files = {
-    click: '/music/S2_m2_click.mp3',
-    false: '/music/S2_m2_false.mp3',
-    next: '/music/S2_m2_next.mp3'
+    click: publicAssetUrl('music/S2_m2_click.mp3'),
+    false: publicAssetUrl('music/S2_m2_false.mp3'),
+    next: publicAssetUrl('music/S2_m2_next.mp3')
   }
   const audio = new Audio(files[name])
   audio.play().catch(err => console.log('Audio playback blocked/failed:', err))
@@ -750,7 +754,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <div class="story-hills"></div>
       <div class="story-character-container">
         <img 
-          :src="introScenes[introStep].speaker === '媽媽' ? '/images-items/S2_m1_mom1.png' : '/images-items/S2_m1_ame1.png'" 
+          :src="introScenes[introStep].speaker === '媽媽' ? publicAssetUrl('images-items/S2_m1_mom1.png') : publicAssetUrl('images-items/S2_m1_ame1.png')" 
           :class="['story-character-img', introScenes[introStep].mood]"
           alt="故事角色"
         />
