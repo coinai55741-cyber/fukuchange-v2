@@ -754,7 +754,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <div class="story-hills"></div>
       <div class="story-character-container">
         <img 
-          :src="introScenes[introStep].speaker === '媽媽' ? publicAssetUrl('images-items/S2_m1_mom1.png') : publicAssetUrl('images-items/S2_m1_ame1.png')" 
+          :src="introScenes[introStep].speaker === '媽媽' ? publicAssetUrl('images-items/S2_m1_mom1.png') : publicAssetUrl('images-items/S2_m1_ame1.png')"
           :class="['story-character-img', introScenes[introStep].mood]"
           alt="故事角色"
         />
