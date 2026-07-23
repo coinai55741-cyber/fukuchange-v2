@@ -754,6 +754,12 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
 <template>
   <main class="app-shell">
+    <div class="orientation-notice" role="status" aria-live="polite">
+      <div>
+        <span>↻</span>
+        <p>建議將裝置旋轉為橫向後開始遊玩</p>
+      </div>
+    </div>
     <section v-if="screen === 'intro'" class="story-screen" :class="`scene-${introStep + 1}`">
       <div class="story-sun"></div>
       <div class="story-hills"></div>

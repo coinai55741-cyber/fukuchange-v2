@@ -176,3 +176,49 @@
   font-weight: 900 !important;
 }
 
+.orientation-notice {
+  display: none;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  .orientation-notice {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: linear-gradient(180deg, #f7df9a, #e3c28c);
+  }
+
+  .orientation-notice > div {
+    width: min(86vw, 360px);
+    padding: 2rem 1.5rem;
+    border-radius: 24px;
+    background: #fffdf8;
+    box-shadow: 0 16px 36px #6e4b2833;
+    text-align: center;
+    color: #4c3820;
+  }
+
+  .orientation-notice span {
+    display: inline-grid;
+    place-items: center;
+    width: 68px;
+    height: 68px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background: #e8b534;
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 900;
+    box-shadow: 0 4px 0 #bf8c18;
+  }
+
+  .orientation-notice p {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 900;
+    line-height: 1.55;
+  }
+}
