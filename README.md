@@ -1,7 +1,7 @@
 # 穿搭小達人工程交接文件
 
 更新日期：2026-07-23  
-專案路徑：`D:\Yezi\G_project\S2_mission_game\fukuchange_v2`  
+
 GitHub：`https://github.com/coinai55741-cyber/fukuchange-v2`  
 GitHub Pages：`https://coinai55741-cyber.github.io/fukuchange-v2/`
 
