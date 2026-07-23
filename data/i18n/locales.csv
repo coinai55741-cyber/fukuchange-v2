@@ -1,8 +1,0 @@
-﻿locale_code,language_code,dialect_code,display_name,enabled,fallback_locale
-zh-Hant,zh,,中文（繁體）,true,
-hak-sihien,hak,sihien,客語（四縣腔）,true,zh-Hant
-hak-hailu,hak,hailu,客語（海陸腔）,false,hak-sihien
-hak-dapu,hak,dapu,客語（大埔腔）,false,hak-sihien
-hak-raoping,hak,raoping,客語（饒平腔）,false,hak-sihien
-hak-zhaoan,hak,zhaoan,客語（詔安腔）,false,hak-sihien
-hak-namsihien,hak,namsihien,客語（南四縣腔）,false,hak-sihien
