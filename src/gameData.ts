@@ -1,6 +1,7 @@
 import quizCsv from '../data/quiz/穿搭小達人 - 出題架構.csv?raw'
 import tagsCsv from '../data/quiz/穿搭小達人 - 單字標籤.csv?raw'
 import rulesCsv from '../data/quiz/穿搭規則對照表.csv?raw'
+import feedbackMessagesCsv from '../data/quiz/feedback_messages.csv?raw'
 
 export type Slot = 'head' | 'neck' | 'body' | 'pants' | 'knee' | 'shoes'
 export type ClosetTab = 'tops' | 'bottoms' | 'shoes' | 'accessories'
@@ -318,3 +319,9 @@ function buildRulesFromCsv(): RuleData[] {
 }
 
 export const rulesConfig = buildRulesFromCsv()
+
+export const feedbackMessages: Record<string, string> = Object.fromEntries(
+  parseCsv(feedbackMessagesCsv)
+    .map((row) => [row.key?.trim(), row.message ?? ''])
+    .filter(([key, message]) => key && message)
+)

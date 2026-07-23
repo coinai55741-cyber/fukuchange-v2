@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { clothing, questions, tabs, rulesConfig, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, rulesConfig, feedbackMessages, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { dictionaryColors, dictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -383,6 +383,11 @@ function getRuleWarning(name: string, defaultWarning: string): string {
   return rule?.warning || defaultWarning
 }
 
+function feedbackMessage(key: string, fallback: string, replacements: Record<string, string> = {}) {
+  const template = feedbackMessages[key] || fallback
+  return Object.entries(replacements).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), template)
+}
+
 function checkDressedDecency(q: Question, selectedMap: Partial<Record<Slot, string>>) {
   const isWater = q.tags?.includes('水上') || q.item === '泅水帽' || q.item === '泅水衫'
   const hasSwimsuit = Object.values(selectedMap).some(id => {
@@ -401,7 +406,7 @@ const clothingOccasions = new Set(['日常', '運動', '正式', '喜慶'])
 
 function validateItem(item: { name: string; type: string; weather: string[]; blacklist: string[]; occasions: string[]; verbs: string[] }, currentLevel: any, verb: string, isTargetCheck = false) {
   if (currentLevel.weather && !item.weather.includes(currentLevel.weather)) {
-    return { valid: false, reason: `季節氣候不符：題目要求「${currentLevel.weather}」，但「${item.name}」僅適用「${item.weather.join(',')}」天氣。` }
+    return { valid: false, reason: feedbackMessage('item_weather_mismatch', `季節氣候不符：題目要求「${currentLevel.weather}」，但「${item.name}」僅適用「${item.weather.join(',')}」天氣。`, { weather: currentLevel.weather, item: item.name, itemWeather: item.weather.join(',') }) }
   }
 
   for (const occasion of currentLevel.occasions) {
@@ -409,19 +414,19 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       continue
     }
     if (item.blacklist.includes(occasion)) {
-      const customWarning = getRuleWarning(item.name, `觸發絕對黑名單：此題目場景為「${occasion}」，但「${item.name}」在此場合被禁用。`)
+      const customWarning = getRuleWarning(item.name, feedbackMessage('item_blacklist_mismatch', `觸發絕對黑名單：此題目場景為「${occasion}」，但「${item.name}」在此場合被禁用。`, { occasion, item: item.name }))
       return { valid: false, reason: customWarning }
     }
   }
 
   if (isTargetCheck) {
     if (!item.verbs.includes(verb)) {
-      return { valid: false, reason: `動詞搭配錯誤：此處亮出動詞為「${verb}」，但「${item.name}」必須搭配「${item.verbs.join(', ')}」。` }
+      return { valid: false, reason: feedbackMessage('item_verb_mismatch', `動詞搭配錯誤：此處亮出動詞為「${verb}」，但「${item.name}」必須搭配「${item.verbs.join(', ')}」。`, { verb, item: item.name, itemVerbs: item.verbs.join(', ') }) }
     }
 
     if (currentLevel.allowedItems && currentLevel.allowedItems.length > 0) {
       if (!currentLevel.allowedItems.includes(item.name)) {
-        return { valid: false, reason: `題目限制：此題目指定必須搭配衣物為「${currentLevel.allowedItems.join(' 或 ')}」。` }
+        return { valid: false, reason: feedbackMessage('item_requirement_mismatch', `題目限制：此題目指定必須搭配衣物為「${currentLevel.allowedItems.join(' 或 ')}」。`, { allowedItems: currentLevel.allowedItems.join(' 或 ') }) }
       }
     }
   }
@@ -433,7 +438,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       if (activeOccasions.length > 0) {
         const hasMatchingOccasion = activeOccasions.some((occ: string) => item.occasions.includes(occ))
         if (!hasMatchingOccasion) {
-          const customWarning = getRuleWarning(item.name, `場合限制不符：「${item.name}」不符合題目要求的「${activeOccasions.join(',')}」。`)
+          const customWarning = getRuleWarning(item.name, feedbackMessage('item_occasion_mismatch', `場合限制不符：「${item.name}」不符合題目要求的「${activeOccasions.join(',')}」。`, { item: item.name, occasions: activeOccasions.join(',') }))
           return { valid: false, reason: customWarning }
         }
       }
@@ -441,13 +446,13 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
   } else if (item.type === 'rain') {
     const isCleaning = currentLevel.occasions.includes('打掃') || currentLevel.colorThemes.includes('打掃')
     if (!currentLevel.isRaining && !isCleaning) {
-      const customWarning = getRuleWarning('非雨天/非打掃穿雨鞋', `「水靴筒」為雨天或大掃除特規裝備，但此題目非下雨或打掃場景。`)
+      const customWarning = getRuleWarning('非雨天/非打掃穿雨鞋', feedbackMessage('rain_boot_context_mismatch', `「水靴筒」為雨天或大掃除特規裝備，但此題目非下雨或打掃場景。`))
       return { valid: false, reason: customWarning }
     }
   } else if (item.type === 'water') {
     const isWaterLevel = currentLevel.occasions.includes('水上') || currentLevel.allowedItems?.includes('泅水帽') || currentLevel.allowedItems?.includes('泅水衫')
     if (!isWaterLevel) {
-      const customWarning = getRuleWarning('非游泳穿泅水帽/衫', `「${item.name}」為水上活動特規裝備，但此題目非水上活動。`)
+      const customWarning = getRuleWarning('非游泳穿泅水帽/衫', feedbackMessage('water_context_mismatch', `「${item.name}」為水上活動特規裝備，但此題目非水上活動。`, { item: item.name }))
       return { valid: false, reason: customWarning }
     }
   }
@@ -458,13 +463,13 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
 function validateColor(color: ColorData, currentLevel: any, isTargetCheck = false) {
   if (isTargetCheck && currentLevel.brightness) {
     if (!color.weather.includes(currentLevel.brightness)) {
-      return { valid: false, reason: `色彩亮度不符：題目要求為「${currentLevel.brightness}」，但「${color.name}」屬於「${color.weather.join(',')}」。` }
+      return { valid: false, reason: feedbackMessage('color_brightness_mismatch', `色彩亮度不符：題目要求為「${currentLevel.brightness}」，但「${color.name}」屬於「${color.weather.join(',')}」。`, { brightness: currentLevel.brightness, color: color.name, colorWeather: color.weather.join(',') }) }
     }
   }
 
   for (const occasion of currentLevel.occasions) {
     if (color.blacklist.includes(occasion)) {
-      const customWarning = getRuleWarning(color.name, `顏色搭配衝突：此題涉及「${occasion}」，但「${color.name}」與該場合互斥。`)
+      const customWarning = getRuleWarning(color.name, feedbackMessage('color_occasion_conflict', `顏色搭配衝突：此題涉及「${occasion}」，但「${color.name}」與該場合互斥。`, { occasion, color: color.name }))
       return { valid: false, reason: customWarning }
     }
   }
@@ -472,13 +477,13 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
   if (isTargetCheck && currentLevel.colorThemes && currentLevel.colorThemes.length > 0) {
     const matchesTheme = currentLevel.colorThemes.some((theme: string) => color.occasions.includes(theme))
     if (!matchesTheme) {
-      return { valid: false, reason: `花色主題不符：此題目要求特色主題「${currentLevel.colorThemes.join(',')}」，而「${color.name}」為「${color.occasions.join(',')}」屬性。` }
+      return { valid: false, reason: feedbackMessage('color_theme_mismatch', `花色主題不符：此題目要求特色主題「${currentLevel.colorThemes.join(',')}」，而「${color.name}」為「${color.occasions.join(',')}」屬性。`, { colorThemes: currentLevel.colorThemes.join(','), color: color.name, colorOccasions: color.occasions.join(',') }) }
     }
   }
 
   if (isTargetCheck && currentLevel.allowedColors && currentLevel.allowedColors.length > 0) {
     if (!currentLevel.allowedColors.includes(color.name)) {
-      return { valid: false, reason: `題目限制：此題目指定必須搭配顏色為「${currentLevel.allowedColors.join(' 或 ')}」。` }
+      return { valid: false, reason: feedbackMessage('color_requirement_mismatch', `題目限制：此題目指定必須搭配顏色為「${currentLevel.allowedColors.join(' 或 ')}」。`, { allowedColors: currentLevel.allowedColors.join(' 或 ') }) }
     }
   }
 
@@ -490,7 +495,7 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
         const anyColorHasOccasion = colorsList.some(c => c.name !== 'X' && c.occasions.includes(occ))
         if (anyColorHasOccasion) {
           if (!color.occasions.includes(occ)) {
-            const customWarning = getRuleWarning(color.name, `顏色不符場合：此題場合為「${occ}」，但顏色「${color.name}」不具備該場合屬性。`)
+            const customWarning = getRuleWarning(color.name, feedbackMessage('color_context_mismatch', `顏色不符場合：此題場合為「${occ}」，但顏色「${color.name}」不具備該場合屬性。`, { occasion: occ, color: color.name }))
             return { valid: false, reason: customWarning }
           }
         }
@@ -556,7 +561,7 @@ function submitOutfit() {
   const decency = checkDressedDecency(question, selected.value)
   if (!decency.complete) {
     playSound('false')
-    feedback.value = { kind: 'error', text: '⚠️ 出門前記得上衣、下衣、鞋子都要穿好喲！' }
+    feedback.value = { kind: 'error', text: feedbackMessage('missing_required_outfit', '⚠️ 出門前記得上衣、下衣、鞋子都要穿好喲！') }
     return
   }
 
@@ -566,7 +571,7 @@ function submitOutfit() {
 
   if (!equippedTargetItem) {
     playSound('false')
-    feedback.value = { kind: 'error', text: '⚠️ 請先穿上適合該題目的衣物或配件！' }
+    feedback.value = { kind: 'error', text: feedbackMessage('missing_target_item', '⚠️ 請先穿上適合該題目的衣物或配件！') }
     return
   }
 
@@ -596,7 +601,7 @@ function submitOutfit() {
 
   if (!equippedTargetItem.verbs.includes(verb)) {
     isValid = false
-    reasonText = question.errorPromptVerb || `動詞與衣物衝突：此處動詞為「${verb}」，但「${itemName}」不能搭配它。`
+    reasonText = question.errorPromptVerb || feedbackMessage('verb_item_conflict', `動詞與衣物衝突：此處動詞為「${verb}」，但「${itemName}」不能搭配它。`, { verb, item: itemName })
   }
 
   if (isValid) {
@@ -643,7 +648,7 @@ function submitOutfit() {
     const valRes = validateItem(item, currentLevel, item.verbs[0] || '著', false)
     if (!valRes.valid) {
       isContextMatch = false
-      contextReason = `❌ 穿戴衣物不合時宜：模特兒身上穿的「${item.name}」不符合此場合（${valRes.reason}）。`
+      contextReason = feedbackMessage('worn_item_context_mismatch', `❌ 穿戴衣物不合時宜：模特兒身上穿的「${item.name}」不符合此場合（${valRes.reason ?? ''}）。`, { item: item.name, reason: valRes.reason ?? '' })
       break
     }
   }
@@ -653,14 +658,14 @@ function submitOutfit() {
   const hasWarmClothing = equippedItems.some(c => warmItems.includes(c.name))
   if (currentLevel.weather === '熱' && hasWarmClothing) {
     isContextMatch = false
-    contextReason = '太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！'
+    contextReason = feedbackMessage('hot_with_warm_clothing', '太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！')
   }
 
   const coldItems = ['短衫', '短褲', '裙']
   const hasColdClothing = equippedItems.some(c => coldItems.includes(c.name))
   if (currentLevel.weather === '冷' && hasColdClothing) {
     isContextMatch = false
-    contextReason = '冷風吹來～小主人在瑟瑟發抖！你雖然寫對了客語單字，但是冬天穿短袖短褲會著涼喔！快幫模特兒換成防寒的羽絨衫或長褲吧！'
+    contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～小主人在瑟瑟發抖！你雖然寫對了客語單字，但是冬天穿短袖短褲會著涼喔！快幫模特兒換成防寒的羽絨衫或長褲吧！')
   }
 
   // Semantic conflicts from the CSV
@@ -695,16 +700,16 @@ function submitOutfit() {
 
   if (tier === 1) {
     playSound('next')
-    feedback.value = { kind: 'success', canAdvance: true, text: '🎉 完全正確！題目要求與情境都搭配得很好！' }
+    feedback.value = { kind: 'success', canAdvance: true, text: feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！') }
   } else {
     playSound('false')
     let text = ''
     if (tier === 2) {
-      text = contextReason || question.errorPromptItem || question.errorPromptColor || '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！'
+      text = contextReason || question.errorPromptItem || question.errorPromptColor || feedbackMessage('tier_context_wrong_default', '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！')
     } else if (tier === 3) {
-      text = '你的穿搭非常合適！但要注意：你寫在句子裡的單字，或是模特兒身上穿著的衣物，不是這道題目指定的搭配喔！快去選擇或給娃娃穿上這題指定的衣服吧！'
+      text = feedbackMessage('tier_target_wrong_context_right', '你的穿搭非常合適！但要注意：你寫在句子裡的單字，或是模特兒身上穿著的衣物，不是這道題目指定的搭配喔！快去選擇或給娃娃穿上這題指定的衣服吧！')
     } else {
-      text = '再想一下！句子中的空格填寫不正確，且模特兒的穿戴也完全不符合當下的情境要求喔。'
+      text = feedbackMessage('tier_target_and_context_wrong', '再想一下！句子中的空格填寫不正確，且模特兒的穿戴也完全不符合當下的情境要求喔。')
     }
     feedback.value = { kind: 'error', canAdvance: true, text }
   }
@@ -712,7 +717,7 @@ function submitOutfit() {
 
 function advanceQuestion(skipped = false) {
   playSound('click')
-  if (skipped) feedback.value = { kind: 'error', text: '本題已跳過，獲得 0 分。' }
+  if (skipped) feedback.value = { kind: 'error', text: feedbackMessage('skip_question', '本題已跳過，獲得 0 分。') }
   if (questionIndex.value >= 9) {
     finishGame()
     return
