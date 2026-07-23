@@ -756,7 +756,6 @@ onBeforeUnmount(() => window.clearInterval(timer))
   <main class="app-shell">
     <div class="orientation-notice" role="status" aria-live="polite">
       <div>
-        <span>↻</span>
         <p>建議將裝置旋轉為橫向後開始遊玩</p>
       </div>
     </div>
