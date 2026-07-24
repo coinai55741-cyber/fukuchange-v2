@@ -1,5 +1,5 @@
 key,message
-missing_required_outfit,"⚠️ 出門前記得上衣、下衣、鞋子都要穿好喲！"
+missing_required_outfit,"出門前記得上衣、下衣、鞋子都要穿好喲！"
 missing_target_item,"⚠️ 請先穿上適合該題目的衣物或配件！"
 item_weather_mismatch,"季節氣候不符：題目要求「{weather}」，但「{item}」僅適用「{itemWeather}」天氣。"
 item_verb_mismatch,"動詞搭配錯誤：此處亮出動詞為「{verb}」，但「{item}」必須搭配「{itemVerbs}」。"

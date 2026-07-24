@@ -21,9 +21,11 @@ export type GameResultPayload = {
 }
 
 const mockEntries: LeaderboardEntry[] = [
-  { rank: 1, displayName: '小○○', score: 100, elapsedMs: 34331, submittedAt: '2026-07-20T09:00:00Z' },
-  { rank: 2, displayName: '葉○○', score: 100, elapsedMs: 38951, submittedAt: '2026-07-20T09:02:00Z' },
-  { rank: 3, displayName: '阿○○', score: 90, elapsedMs: 45420, submittedAt: '2026-07-20T09:04:00Z' },
+  { rank: 1, displayName: '林O恩', score: 100, elapsedMs: 5000, submittedAt: '2026-07-20T09:00:00Z' },
+  { rank: 2, displayName: '張O彤', score: 100, elapsedMs: 9000, submittedAt: '2026-07-20T09:02:00Z' },
+  { rank: 3, displayName: '陳O宇', score: 100, elapsedMs: 10000, submittedAt: '2026-07-20T09:04:00Z' },
+  { rank: 4, displayName: '李O澄', score: 100, elapsedMs: 11000, submittedAt: '2026-07-20T09:06:00Z' },
+  { rank: 5, displayName: '黃O妍', score: 100, elapsedMs: 12000, submittedAt: '2026-07-20T09:08:00Z' },
 ]
 
 /**

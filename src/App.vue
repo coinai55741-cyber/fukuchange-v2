@@ -38,9 +38,9 @@ const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[]
 ]
 
 const introScenes = [
-  { tag: '假圖：intro_01_ready', speaker: '阿梅', text: '哇！我已經準備好出發囉！', mood: 'happy' },
-  { tag: '假圖：intro_02_mom_warning', speaker: '媽媽', text: '阿梅！等一下，你確定要穿這樣出門嗎？看準天氣和場合，穿得舒服又體面，才不會變成災難焦點喔！', mood: 'surprised' },
-  { tag: '假圖：intro_03_wrong_examples', speaker: '阿梅', text: '哎呀！如果穿錯衣服或選錯顏色，可就太尷尬了！造型師快來幫幫忙吧！', mood: 'worried' },
+  { tag: 'intro_01_ready', speaker: '阿梅', text: '哇！我已經準備好出發囉！', mood: 'happy', image: 'S2_m1_ame1.png' },
+  { tag: 'intro_02_mom_warning', speaker: '媽媽', text: '阿梅！等一下，你確定要穿這樣出門嗎？看準天氣和場合，穿得舒服又體面，才不會變成災難焦點喔！', mood: 'surprised', image: 'S2_m1_mom1.png' },
+  { tag: 'intro_03_wrong_examples', speaker: '阿梅', text: '哎呀！如果穿錯衣服或選錯顏色，可就太尷尬了！造型師快來幫幫忙吧！', mood: 'worried', image: 'S2_m1_ame2.png' },
 ]
 
 const bodySlotControls: { slot: Slot; label: string; tab: ClosetTab }[] = [
@@ -79,6 +79,8 @@ const requiredSlots = computed<Slot[]>(() => {
 const completedForQuestion = computed(() => {
   return Object.values(selected.value).filter(Boolean).length
 })
+const lobbyRankEntries = computed(() => leaderboard.value?.entries.slice(0, 5) ?? [])
+
 function isSlotEquipped(slot: Slot) {
   if (selected.value[slot]) return true
   if (slot === 'pants') {
@@ -140,6 +142,13 @@ const gameBackgroundStyle = computed(() => {
     backgroundRepeat: 'no-repeat'
   }
 })
+
+const introBackgroundStyle = computed(() => ({
+  backgroundImage: `url("${publicAssetUrl('images-items/S2_m1_BG1.png')}")`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat'
+}))
 
 const closetCards = computed(() => closetItemIds.value[activeTab.value]
   .map((id) => clothing.find((item) => item.id === id))
@@ -561,7 +570,7 @@ function submitOutfit() {
   const decency = checkDressedDecency(question, selected.value)
   if (!decency.complete) {
     playSound('false')
-    feedback.value = { kind: 'error', text: feedbackMessage('missing_required_outfit', '⚠️ 出門前記得上衣、下衣、鞋子都要穿好喲！') }
+    feedback.value = { kind: 'error', text: feedbackMessage('missing_required_outfit', '出門前記得上衣、下衣、鞋子都要穿好喲！') }
     return
   }
 
@@ -743,12 +752,19 @@ async function showLeaderboard() {
   screen.value = 'result'
 }
 
+async function loadLobbyLeaderboard() {
+  leaderboard.value = await leaderboardService.getLeaderboard(9)
+}
+
 function replay() {
   playSound('click')
   screen.value = 'lobby'
 }
 
-onMounted(() => { pinyinField.value = Math.random() < 0.5 ? 'color' : 'item' })
+onMounted(() => {
+  pinyinField.value = Math.random() < 0.5 ? 'color' : 'item'
+  void loadLobbyLeaderboard()
+})
 onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
@@ -759,17 +775,28 @@ onBeforeUnmount(() => window.clearInterval(timer))
         <p>建議將裝置旋轉為橫向後開始遊玩</p>
       </div>
     </div>
-    <section v-if="screen === 'intro'" class="story-screen" :class="`scene-${introStep + 1}`">
-      <div class="story-sun"></div>
-      <div class="story-hills"></div>
+    <section v-if="screen === 'intro'" class="story-screen" :class="`scene-${introStep + 1}`" :style="introBackgroundStyle">
+      <header class="lobby-toolbar" aria-label="前導故事工具列">
+        <button class="lobby-back-button" type="button" @click="screen = 'lobby'"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
+        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+      </header>
       <div class="story-character-container">
         <img 
-          :src="introScenes[introStep].speaker === '媽媽' ? publicAssetUrl('images-items/S2_m1_mom1.png') : publicAssetUrl('images-items/S2_m1_ame1.png')"
+          :src="publicAssetUrl(`images-items/${introScenes[introStep].image}`)"
           :class="['story-character-img', introScenes[introStep].mood]"
           alt="故事角色"
         />
       </div>
-      <div v-if="introStep === 2" class="mistake-bubbles"><span>大熱天穿羽絨衣</span><span>婚禮穿全黑</span></div>
+      <div v-if="introStep === 2" class="mistake-bubbles">
+        <figure>
+          <img :src="publicAssetUrl('images-items/S2_m2_clould1.png')" alt="大熱天穿羽絨衣">
+          <figcaption>大熱天穿羽絨衣</figcaption>
+        </figure>
+        <figure>
+          <img :src="publicAssetUrl('images-items/S2_m2_clould2.png')" alt="參與婚禮穿全黑">
+          <figcaption>參與婚禮穿全黑</figcaption>
+        </figure>
+      </div>
       <article class="dialogue-card">
         <small>{{ introScenes[introStep].speaker }}</small>
         <p>{{ introScenes[introStep].text }}</p>
@@ -777,24 +804,51 @@ onBeforeUnmount(() => window.clearInterval(timer))
       </article>
     </section>
 
-    <section v-else-if="screen === 'lobby'" class="lobby-screen">
-      <button class="dictionary-launch" @click="dictionaryOpen = true">📖 穿搭小詞典<br><small>衣櫃與客語單字</small></button>
+    <section v-else-if="screen === 'lobby'" class="lobby-screen" :style="introBackgroundStyle">
+      <header class="lobby-toolbar" aria-label="首頁工具列">
+        <button class="lobby-back-button" type="button" @click="screen = 'intro'"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
+        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+      </header>
+      <button class="dictionary-launch dictionary-image-launch" @click="dictionaryOpen = true" aria-label="穿搭小詞典，阿梅的衣櫃"><img :src="publicAssetUrl('images-items/S2_m2_clodet.png')" alt=""></button>
       <div class="lobby-card">
-        <p class="eyebrow">✧ 阿梅的穿搭冒險</p><h1>歡迎來到 <span>穿搭小達人！</span></h1>
+        <h1>歡迎來到 <span>穿搭小達人！</span></h1>
         <section class="lobby-info" aria-label="遊戲說明">
           <p class="lobby-intro">阿梅最愛出去玩，但出門前得先學會「看場合穿衣服」！翻開阿梅的衣櫃，發揮穿搭創意，幫阿梅避開尷尬的服裝災難，變身穿搭小達人吧！</p>
-          <article class="info-block purpose"><b>▼ 遊玩提示</b><p>玩穿可事先閱讀課程學習，學習客語單字。</p></article>
+          <article class="info-block purpose"><b>▼ 遊玩提示</b><p>可在左方【穿搭小詞典】學習衣著單字喔！</p></article>
           <article class="info-block rules"><b>▼ 遊玩計分</b><ol><li>總遊玩分數，一題 10 分。</li><li>根據題目選擇合適的穿著。</li><li>累計最高分及最快秒數為勝利。</li></ol></article>
-          <p class="warning">⚠️　▼ 出門前記得上衣、下衣、鞋子都要穿好喲！</p>
+          <p class="warning">▼ 出門前記得上衣、下衣、鞋子都要穿好喲！</p>
         </section>
-        <div class="dialects"><button v-for="dialect in dialects" :key="dialect.id" :class="{ selected: selectedDialect === dialect.id }" :aria-pressed="selectedDialect === dialect.id" @click="selectedDialect = dialect.id">{{ dialect.label }}</button></div>
+        <section class="dialect-panel" aria-label="選擇腔調別">
+          <h2>選擇腔調別</h2>
+          <div class="dialects"><button v-for="dialect in dialects" :key="dialect.id" :class="{ selected: selectedDialect === dialect.id }" :aria-pressed="selectedDialect === dialect.id" @click="selectedDialect = dialect.id">{{ dialect.label }}<img v-if="selectedDialect === dialect.id" class="dialect-check-icon" :src="publicAssetUrl('ui/check-circle.png')" alt=""></button></div>
+        </section>
         <button class="primary start" @click="startGame">開始遊戲</button>
-        <button class="text-button rank-link" @click="showLeaderboard">查看排行榜</button>
       </div>
+      <aside class="lobby-leaderboard" aria-label="即時排行榜">
+        <img class="lobby-rank-banner" :src="publicAssetUrl('ui/rank_banner.png')" alt="即時排行榜">
+        <div class="lobby-rank-summary">
+          <p>您目前的排名：<b>{{ leaderboard?.myEntry?.rank ?? '--' }}</b></p>
+          <p>最佳紀錄：<b>{{ leaderboard?.myEntry ? formatTime(leaderboard.myEntry.elapsedMs) : '--' }}</b></p>
+        </div>
+        <button class="lobby-rank-link" type="button" @click="showLeaderboard">查看總排名</button>
+        <ol>
+          <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
+            <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_small_rank${entry.rank}.png`)" alt="">
+            <span class="lobby-rank-name">{{ entry.displayName }}</span>
+            <time>{{ formatTime(entry.elapsedMs) }}</time>
+          </li>
+        </ol>
+      </aside>
     </section>
 
     <section v-else-if="screen === 'game'" class="game-screen" :style="gameBackgroundStyle">
-      <header class="toolbar"><button class="icon-button" @click="screen = 'lobby'">⌂</button><span>？</span><button class="text-button sound-toggle-btn" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button><strong>⏱ {{ formatTime(elapsedMs) }}</strong></header>
+      <header class="toolbar">
+        <div class="lobby-toolbar game-top-actions" aria-label="遊戲工具列">
+          <button class="lobby-back-button" type="button" @click="screen = 'lobby'"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
+          <button class="text-button sound-toggle-btn" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+        </div>
+        <strong>⏱ {{ formatTime(elapsedMs) }}</strong>
+      </header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar :outfit="selected" /></section>
       <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></span></button></div><div class="closet-footer"><strong>完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
@@ -808,9 +862,17 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
     <section v-if="dictionaryOpen" class="dictionary-overlay" role="dialog" aria-modal="true" aria-label="穿搭小詞典" @click.self="dictionaryOpen = false">
       <article class="dictionary-modal">
-        <header><div><h2>📖 客庄衣著小詞典</h2><p>學習正宗客家穿衣名詞與發音</p></div><button aria-label="關閉詞典" @click="dictionaryOpen = false">×</button></header>
+        <header>
+          <div><h2>穿搭小詞典</h2></div>
+          <div class="dictionary-header-actions">
+            <select v-model="selectedDialect" aria-label="選擇客語腔調">
+              <option v-for="dialect in dialects" :key="dialect.id" :value="dialect.id">{{ dialect.label }}</option>
+            </select>
+            <button aria-label="關閉詞典" @click="dictionaryOpen = false">×</button>
+          </div>
+        </header>
         <div class="dictionary-search"><span>⌕</span><input v-model="dictionarySearch" placeholder="搜尋客語名詞、華語翻譯或拼音…"><button v-if="dictionarySearch" @click="dictionarySearch = ''">重設</button></div>
-        <div class="dictionary-content"><div v-if="filteredDictionaryItems.length" class="dictionary-grid"><article v-for="item in filteredDictionaryItems" :key="item.name" class="dictionary-item"><div class="dictionary-image"><img :src="assetUrl(item.image)" :alt="item.name"></div><div><b>{{ item.name }}</b><p class="dictionary-pinyin">拼音：{{ item.pinyin }}</p><p>釋義：{{ item.translation }}</p><p class="dictionary-knowledge"><span>小知識</span>{{ item.description }}</p></div></article></div><p v-else class="dictionary-empty">找不到「{{ dictionarySearch }}」相關詞彙。</p><section class="dictionary-colors"><h3>🎨 客語顏色名詞</h3><div><article v-for="color in dictionaryColors" :key="color.name"><i :class="{ pattern: color.pattern }" :style="{ '--color': color.hex }"></i><p class="dictionary-pinyin">{{ color.pinyin }}</p><b>{{ color.name }}</b><small>（{{ color.translation }}）</small></article></div></section></div>
+        <div class="dictionary-content"><div v-if="filteredDictionaryItems.length" class="dictionary-grid"><article v-for="item in filteredDictionaryItems" :key="item.name" class="dictionary-item"><div class="dictionary-image"><img :src="assetUrl(item.image)" :alt="item.name"></div><div><b>{{ item.name }}</b><p class="dictionary-pinyin">拼音：{{ item.pinyin }}</p><p>釋義：{{ item.translation }}</p><p class="dictionary-knowledge"><span>小知識</span>{{ item.description }}</p></div></article></div><p v-else class="dictionary-empty">找不到「{{ dictionarySearch }}」相關詞彙。</p><section class="dictionary-colors"><h3>🎨 客語顏色名詞</h3><div class="dictionary-grid"><article v-for="color in dictionaryColors" :key="color.name" class="dictionary-item dictionary-color-item"><div class="dictionary-image dictionary-color-image"><i :class="{ pattern: color.pattern }" :style="color.pattern ? { '--pattern': `url('${assetUrl('hakka_pattern.png')}')` } : { '--color': color.hex }"></i></div><div><b>{{ color.name }}</b><p class="dictionary-pinyin">拼音：{{ color.pinyin }}</p><p>釋義：{{ color.translation }}</p></div></article></div></section></div>
         <footer><button class="secondary" @click="dictionaryOpen = false">關閉詞典</button></footer>
       </article>
     </section>
