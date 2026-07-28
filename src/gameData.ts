@@ -260,7 +260,9 @@ function buildQuestionsFromCsv(): Question[] {
     }
     if (!valid || !Object.keys(target).length) return []
 
-    const item = row.item.split(',')[0].trim()
+    const itemOptions = row.item.split(',').map((value) => value.trim()).filter(Boolean)
+    const targetEntitySet = new Set(targetTokens.map((token) => token.split(':')[1]?.split('@')[0]).filter(Boolean))
+    const item = itemOptions.find((option) => targetEntitySet.has(displayEntityByChinese[option])) ?? itemOptions[0] ?? row.item.trim()
     const promptEntity = displayEntityByChinese[item]
     const promptToken = targetTokens.map((token) => token.split(':')[1]).find((token) => token?.startsWith(`${promptEntity}@`))
     const promptColor = promptToken?.split('@')[1] ?? ''
@@ -320,8 +322,30 @@ function buildRulesFromCsv(): RuleData[] {
 
 export const rulesConfig = buildRulesFromCsv()
 
+export interface FeedbackMessageData {
+  key: string
+  title: string
+  message: string
+  suggestion: string
+  scoreTier: string
+  scenario: string
+  wrongReason: string
+}
+
+export const feedbackMessageRecords: FeedbackMessageData[] = parseCsv(feedbackMessagesCsv)
+  .map((row) => ({
+    key: row.key?.trim() ?? '',
+    title: row.title ?? '',
+    message: row.message ?? '',
+    suggestion: row.suggestion ?? '',
+    scoreTier: row.score_tier ?? '',
+    scenario: row.scenario ?? '',
+    wrongReason: row.wrong_reason ?? ''
+  }))
+  .filter((row) => row.key && row.message)
+
 export const feedbackMessages: Record<string, string> = Object.fromEntries(
-  parseCsv(feedbackMessagesCsv)
+  feedbackMessageRecords
     .map((row) => [row.key?.trim(), row.message ?? ''])
     .filter(([key, message]) => key && message)
 )

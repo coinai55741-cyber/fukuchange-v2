@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { clothing, questions, tabs, rulesConfig, feedbackMessages, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, rulesConfig, feedbackMessages, feedbackMessageRecords, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { dictionaryColors, dictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -8,6 +8,18 @@ import SpineAvatar from './SpineAvatar.vue'
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
 type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean } | null
 type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
+type QuestionReview = {
+  id: string
+  index: number
+  score: number
+  passed: boolean
+  skipped: boolean
+  playerSentence: string
+  correctSentence: string
+  feedbackTitle: string
+  feedbackText: string
+  suggestion: string
+}
 
 const screen = ref<Screen>('intro')
 const introStep = ref(0)
@@ -19,6 +31,7 @@ const feedback = ref<Feedback>(null)
 const completed = ref(0)
 const score = ref(0)
 const questionScores = ref<Record<string, number>>({})
+const questionReviews = ref<QuestionReview[]>([])
 const elapsedMs = ref(0)
 const leaderboard = ref<LeaderboardResponse | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
@@ -27,6 +40,7 @@ const closetItemIds = ref<Record<ClosetTab, string[]>>({ tops: [], bottoms: [], 
 const dictionaryOpen = ref(false)
 const dictionarySearch = ref('')
 let timer: number | undefined
+let bgmAudio: HTMLAudioElement | undefined
 
 const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[] = [
   { id: 'hak-sihien', label: '四縣腔', hasVerifiedVocabulary: true },
@@ -80,6 +94,14 @@ const completedForQuestion = computed(() => {
   return Object.values(selected.value).filter(Boolean).length
 })
 const lobbyRankEntries = computed(() => leaderboard.value?.entries.slice(0, 5) ?? [])
+const resultRankEntries = computed(() => leaderboard.value?.entries.slice(0, 10) ?? [])
+const myResultEntry = computed(() => leaderboard.value?.myEntry)
+const showMyRankBelowTopTen = computed(() => {
+  const mine = myResultEntry.value
+  return Boolean(mine && mine.rank > 10)
+})
+const resultTitle = computed(() => score.value === 100 ? '完美穿搭師' : score.value >= 60 ? '時尚觀察員' : '穿搭初學者')
+const resultComment = computed(() => score.value === 100 ? '無懈可擊！你的搭配精準符合所有環境限制，細節與美感更是全場焦點。' : '多觀察天氣與場合，再試一次一定會更好！')
 
 function isSlotEquipped(slot: Slot) {
   if (selected.value[slot]) return true
@@ -90,6 +112,12 @@ function isSlotEquipped(slot: Slot) {
   }
   return false
 }
+
+function seasonalWeatherForQuestion(question?: Question | null) {
+  const tags = question?.tags ?? []
+  return tags.includes('冷') ? '冷' : '熱'
+}
+
 const filteredDictionaryItems = computed(() => {
   const query = dictionarySearch.value.trim().toLowerCase()
   if (!query) return dictionaryItems
@@ -112,10 +140,10 @@ const questionText = computed(() => {
 const seasonWeatherLabel = computed(() => {
   const tags = currentQuestion.value?.tags ?? []
   if (!currentQuestion.value) return ''
-  const season = tags.includes('冷') ? '❄️ 冬天／冷' : '☀️ 夏天／熱'
-  const rain = tags.includes('雨') || tags.includes('下雨') ? '・下雨' : ''
+  const weather = seasonalWeatherForQuestion(currentQuestion.value)
+  const season = weather === '冷' ? '❄️ 冬天／冷' : '☀️ 夏天／熱'
   const night = tags.includes('暗') ? '（晚上）' : ''
-  return `${season}${rain}${night}`
+  return `${season}${night}`
 })
 
 const gameBackgroundStyle = computed(() => {
@@ -148,6 +176,14 @@ const introBackgroundStyle = computed(() => ({
   backgroundSize: 'cover',
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat'
+}))
+
+const resultBackgroundStyle = computed(() => ({
+  backgroundImage: `url("${publicAssetUrl('images-items/S2_m1_BG3.png')}")`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed'
 }))
 
 const closetCards = computed(() => closetItemIds.value[activeTab.value]
@@ -213,6 +249,13 @@ function formatTime(ms: number) {
   const seconds = totalSeconds % 60
   const milliseconds = Math.floor((ms % 1000) / 10)
   return `00:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(2, '0')}`
+}
+
+function formatRankTime(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
 function nextIntro() {
@@ -311,6 +354,7 @@ function startGame() {
   prepareCloset(nextGameSet[0])
   score.value = 0
   questionScores.value = {}
+  questionReviews.value = []
   completed.value = 0
   elapsedMs.value = 0
   feedback.value = null
@@ -322,8 +366,21 @@ function startGame() {
 
 const soundEnabled = ref(true)
 
+function ensureBgm() {
+  if (!soundEnabled.value) return
+  if (!bgmAudio) {
+    bgmAudio = new Audio(publicAssetUrl('music/S2_m2_bgmloop.mp3'))
+    bgmAudio.loop = true
+    bgmAudio.volume = 0.32
+  }
+  if (bgmAudio.paused) {
+    bgmAudio.play().catch(err => console.log('Background music playback blocked/failed:', err))
+  }
+}
+
 function playSound(name: 'click' | 'false' | 'next') {
   if (!soundEnabled.value) return
+  ensureBgm()
   const files = {
     click: publicAssetUrl('music/S2_m2_click.mp3'),
     false: publicAssetUrl('music/S2_m2_false.mp3'),
@@ -334,8 +391,14 @@ function playSound(name: 'click' | 'false' | 'next') {
 }
 
 function toggleSound() {
-  soundEnabled.value = !soundEnabled.value
-  playSound('click')
+  if (soundEnabled.value) {
+    playSound('click')
+    soundEnabled.value = false
+    bgmAudio?.pause()
+  } else {
+    soundEnabled.value = true
+    playSound('click')
+  }
 }
 
 function chooseCard(id: string, slot: Slot) {
@@ -423,6 +486,50 @@ function feedbackMessage(key: string, fallback: string, replacements: Record<str
   return Object.entries(replacements).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), template)
 }
 
+function feedbackMeta(key: string) {
+  return feedbackMessageRecords.find((record) => record.key === key)
+}
+
+function splitQuestionValues(value?: string) {
+  return (value ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+}
+
+function outfitSentence(question: Question, outfit: Partial<Record<Slot, string>>) {
+  const targetSlot = promptTargetItem.value?.slot ?? Object.keys(question.target)[0] as Slot | undefined
+  const item = targetSlot ? clothing.find((entry) => entry.id === outfit[targetSlot]) : undefined
+  if (!item) return '未完成穿搭'
+  const color = question.color ? item.color : ''
+  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
+}
+
+function correctSentence(question: Question) {
+  const targetId = promptTargetId.value ?? Object.values(question.target)[0]
+  const item = clothing.find((entry) => entry.id === targetId)
+  if (!item) return `${question.verb ?? '著'} ${question.color ? `${question.color}个` : ''}${question.item}${question.context}`
+  const color = question.color ? item.color : ''
+  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
+}
+
+function recordQuestionReview(question: Question, points: number, passed: boolean, skipped: boolean, feedbackKey: string, feedbackText: string) {
+  if (questionReviews.value.some((review) => review.id === question.id)) return
+  const meta = feedbackMeta(feedbackKey)
+  questionReviews.value = [
+    ...questionReviews.value,
+    {
+      id: question.id,
+      index: questionIndex.value + 1,
+      score: points,
+      passed,
+      skipped,
+      playerSentence: skipped ? '本題已跳過' : outfitSentence(question, selected.value),
+      correctSentence: correctSentence(question),
+      feedbackTitle: meta?.title || (passed ? '完全正確' : skipped ? '已跳過' : '不符合要求'),
+      feedbackText,
+      suggestion: meta?.suggestion || correctSentence(question)
+    }
+  ]
+}
+
 function checkDressedDecency(q: Question, selectedMap: Partial<Record<Slot, string>>) {
   const isWater = q.tags?.includes('水上') || q.item === '泅水帽' || q.item === '泅水衫'
   const hasSwimsuit = Object.values(selectedMap).some(id => {
@@ -449,8 +556,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       continue
     }
     if (item.blacklist.includes(occasion)) {
-      const customWarning = getRuleWarning(item.name, feedbackMessage('item_blacklist_mismatch', `觸發絕對黑名單：此題目場景為「${occasion}」，但「${item.name}」在此場合被禁用。`, { occasion, item: item.name }))
-      return { valid: false, reason: customWarning }
+      return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `此題目場景為「${occasion}」，但「${item.name}」不符合此場合喔！`, { occasion, item: item.name }) }
     }
   }
 
@@ -466,29 +572,15 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
     }
   }
 
-  if (item.type === 'normal') {
-    const isAllowed = currentLevel.allowedItems && currentLevel.allowedItems.includes(item.name)
-    if (!isAllowed) {
-      const activeOccasions = currentLevel.occasions.filter((occ: string) => clothingOccasions.has(occ))
-      if (activeOccasions.length > 0) {
-        const hasMatchingOccasion = activeOccasions.some((occ: string) => item.occasions.includes(occ))
-        if (!hasMatchingOccasion) {
-          const customWarning = getRuleWarning(item.name, feedbackMessage('item_occasion_mismatch', `場合限制不符：「${item.name}」不符合題目要求的「${activeOccasions.join(',')}」。`, { item: item.name, occasions: activeOccasions.join(',') }))
-          return { valid: false, reason: customWarning }
-        }
-      }
-    }
-  } else if (item.type === 'rain') {
+  if (item.type === 'rain') {
     const isCleaning = currentLevel.occasions.includes('打掃') || currentLevel.colorThemes.includes('打掃')
     if (!currentLevel.isRaining && !isCleaning) {
-      const customWarning = getRuleWarning('非雨天/非打掃穿雨鞋', feedbackMessage('rain_boot_context_mismatch', `「水靴筒」為雨天或大掃除特規裝備，但此題目非下雨或打掃場景。`))
-      return { valid: false, reason: customWarning }
+      return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `「水靴筒」並非此場景穿戴物喔！`) }
     }
   } else if (item.type === 'water') {
     const isWaterLevel = currentLevel.occasions.includes('水上') || currentLevel.allowedItems?.includes('泅水帽') || currentLevel.allowedItems?.includes('泅水衫')
     if (!isWaterLevel) {
-      const customWarning = getRuleWarning('非游泳穿泅水帽/衫', feedbackMessage('water_context_mismatch', `「${item.name}」為水上活動特規裝備，但此題目非水上活動。`, { item: item.name }))
-      return { valid: false, reason: customWarning }
+      return { valid: false, reason: feedbackMessage('water_context_mismatch', `「${item.name}」為水上活動的裝備。`, { item: item.name }) }
     }
   }
 
@@ -627,9 +719,10 @@ function submitOutfit() {
     occasions: baseOccasions,
     colorThemes: question.tags?.filter(t => ['桐花', '杭菊', '客庄', '打掃', '活潑'].includes(t)) || [],
     allowedVerbs: question.verb ? [question.verb] : [],
-    allowedColors: question.color ? [question.color] : [],
-    allowedItems: question.item ? [question.item] : []
+    allowedColors: splitQuestionValues(question.color),
+    allowedItems: splitQuestionValues(question.item)
   }
+  const seasonalWeather = seasonalWeatherForQuestion(question)
 
   let isValid = true
   let reasonText = ''
@@ -683,7 +776,7 @@ function submitOutfit() {
     const valRes = validateItem(item, currentLevel, item.verbs[0] || '著', false)
     if (!valRes.valid) {
       isContextMatch = false
-      contextReason = feedbackMessage('worn_item_context_mismatch', `❌ 穿戴衣物不合時宜：模特兒身上穿的「${item.name}」不符合此場合（${valRes.reason ?? ''}）。`, { item: item.name, reason: valRes.reason ?? '' })
+      contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `穿戴衣物不合時宜：阿梅身上穿的「${item.name}」不符合此場合。`, { item: item.name, reason: '' })
       break
     }
   }
@@ -691,14 +784,14 @@ function submitOutfit() {
   // Shivering / Sweating
   const warmItems = ['羽絨衫', '膨線衫', '頸圍仔']
   const hasWarmClothing = equippedItems.some(c => warmItems.includes(c.name))
-  if (currentLevel.weather === '熱' && hasWarmClothing) {
+  if (seasonalWeather === '熱' && hasWarmClothing) {
     isContextMatch = false
     contextReason = feedbackMessage('hot_with_warm_clothing', '太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！')
   }
 
   const coldItems = ['短衫', '短褲', '裙']
   const hasColdClothing = equippedItems.some(c => coldItems.includes(c.name))
-  if (currentLevel.weather === '冷' && hasColdClothing) {
+  if (seasonalWeather === '冷' && hasColdClothing) {
     isContextMatch = false
     contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～小主人在瑟瑟發抖！你雖然寫對了客語單字，但是冬天穿短袖短褲會著涼喔！快幫模特兒換成防寒的羽絨衫或長褲吧！')
   }
@@ -734,25 +827,40 @@ function submitOutfit() {
   }
 
   if (tier === 1) {
+    const successText = feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！')
+    if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText)
     playSound('next')
-    feedback.value = { kind: 'success', canAdvance: true, text: feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！') }
+    feedback.value = { kind: 'success', canAdvance: true, text: successText }
   } else {
     playSound('false')
     let text = ''
+    let feedbackKey = 'tier_target_and_context_wrong'
     if (tier === 2) {
+      feedbackKey = contextReason ? 'tier_context_wrong_default' : 'tier_context_wrong_default'
       text = contextReason || question.errorPromptItem || question.errorPromptColor || feedbackMessage('tier_context_wrong_default', '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！')
     } else if (tier === 3) {
+      feedbackKey = 'tier_target_wrong_context_right'
       text = feedbackMessage('tier_target_wrong_context_right', '你的穿搭非常合適！但要注意：你寫在句子裡的單字，或是模特兒身上穿著的衣物，不是這道題目指定的搭配喔！快去選擇或給娃娃穿上這題指定的衣服吧！')
     } else {
+      feedbackKey = 'tier_target_and_context_wrong'
       text = feedbackMessage('tier_target_and_context_wrong', '再想一下！句子中的空格填寫不正確，且模特兒的穿戴也完全不符合當下的情境要求喔。')
     }
+    if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text)
     feedback.value = { kind: 'error', canAdvance: true, text }
   }
 }
 
 function advanceQuestion(skipped = false) {
   playSound('click')
-  if (skipped) feedback.value = { kind: 'error', text: feedbackMessage('skip_question', '本題已跳過，獲得 0 分。') }
+  if (skipped) {
+    const question = currentQuestion.value
+    const text = feedbackMessage('skip_question', '本題已跳過，獲得 0 分。')
+    if (question && questionScores.value[question.id] === undefined) {
+      questionScores.value = { ...questionScores.value, [question.id]: 0 }
+      recordQuestionReview(question, 0, false, true, 'skip_question', text)
+    }
+    feedback.value = { kind: 'error', text }
+  }
   if (questionIndex.value >= 9) {
     finishGame()
     return
@@ -791,7 +899,10 @@ onMounted(() => {
   pinyinField.value = Math.random() < 0.5 ? 'color' : 'item'
   void loadLobbyLeaderboard()
 })
-onBeforeUnmount(() => window.clearInterval(timer))
+onBeforeUnmount(() => {
+  window.clearInterval(timer)
+  bgmAudio?.pause()
+})
 </script>
 
 <template>
@@ -804,7 +915,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <section v-if="screen === 'intro'" class="story-screen" :class="`scene-${introStep + 1}`" :style="introBackgroundStyle">
       <header class="lobby-toolbar" aria-label="前導故事工具列">
         <button class="lobby-back-button" type="button" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
-        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="">音效</button>
       </header>
       <div class="story-character-container">
         <img 
@@ -833,7 +944,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <section v-else-if="screen === 'lobby'" class="lobby-screen" :style="introBackgroundStyle">
       <header class="lobby-toolbar" aria-label="首頁工具列">
         <button class="lobby-back-button" type="button" @click="goToScreen('intro')"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
-        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="">音效</button>
       </header>
       <button class="dictionary-launch dictionary-image-launch" @click="openDictionary" aria-label="穿搭小詞典，阿梅的衣櫃"><img :src="publicAssetUrl('images-items/S2_m2_clodet.png')" alt=""></button>
       <div class="lobby-card">
@@ -859,9 +970,10 @@ onBeforeUnmount(() => window.clearInterval(timer))
         <button class="lobby-rank-link" type="button" @click="showLeaderboard">查看總排名</button>
         <ol>
           <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
-            <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_small_rank${entry.rank}.png`)" alt="">
+            <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
+            <b v-else>{{ entry.rank }}</b>
             <span class="lobby-rank-name">{{ entry.displayName }}</span>
-            <time>{{ formatTime(entry.elapsedMs) }}</time>
+            <time>{{ formatRankTime(entry.elapsedMs) }}</time>
           </li>
         </ol>
       </aside>
@@ -871,7 +983,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <header class="toolbar">
         <div class="lobby-toolbar game-top-actions" aria-label="遊戲工具列">
           <button class="lobby-back-button" type="button" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
-          <button class="text-button sound-toggle-btn" @click="toggleSound">{{ soundEnabled ? '🔊 音效：開' : '🔇 音效：關' }}</button>
+          <button class="text-button sound-toggle-btn" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="">音效</button>
         </div>
         <strong>⏱ {{ formatTime(elapsedMs) }}</strong>
       </header>
@@ -881,9 +993,100 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
     </section>
 
-    <section v-else class="result-screen">
-      <div class="result-card"><p class="eyebrow">成績結算</p><h1>{{ score === 100 ? '完美穿搭師' : score >= 60 ? '時尚觀察員' : '穿搭初學者' }}</h1><p>總分 {{ score }} 分　・　花費時間 {{ formatTime(elapsedMs) }}</p><p class="result-comment">{{ score === 100 ? '無懈可擊！你的搭配精準符合所有環境限制。' : '多觀察天氣與場合，再試一次一定會更好！' }}</p><button class="primary" @click="replay">重玩一次</button></div>
-      <section class="ranking-card"><h2>排行榜 <small>Mock 資料</small></h2><div class="rank-head"><span>排名</span><span>學員</span><span>分數</span><span>計時</span></div><div v-for="entry in leaderboard?.entries" :key="`${entry.rank}-${entry.displayName}`" class="rank-row" :class="{ mine: entry.displayName === '測○○' }"><span>{{ entry.rank }}</span><span>{{ entry.displayName }}</span><span>{{ entry.score }}</span><span>{{ formatTime(entry.elapsedMs) }}</span></div><p class="rank-foot">目前共 {{ leaderboard?.participantCount ?? 0 }} 人參加，共玩 {{ leaderboard?.playCount ?? 0 }} 次</p></section>
+    <section v-else class="result-screen" :style="resultBackgroundStyle">
+      <header class="lobby-toolbar" aria-label="結算頁工具列">
+        <button class="lobby-back-button" type="button" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
+        <button class="text-button sound-toggle-btn" type="button" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="">音效</button>
+      </header>
+      <article class="result-panel">
+        <section class="result-summary-card">
+          <h1>恭喜過關！</h1>
+          <p class="result-comment">{{ resultComment }}</p>
+          <div class="result-avatar-placeholder" aria-hidden="true">
+            <img :src="publicAssetUrl(score === 100 ? 'images-items/S2_m2_result_mom5.png' : score >= 60 ? 'images-items/S2_m2_result_mom3.png' : 'images-items/S2_m2_result_mom1.png')" alt="">
+          </div>
+          <div class="result-badge">
+            <span>{{ dialects.find(d => d.id === selectedDialect)?.label ?? '四縣腔' }}</span>
+            <b>{{ resultTitle }}</b>
+          </div>
+          <div class="result-metrics">
+            <div><b>名次</b><span>{{ myResultEntry ? `第${myResultEntry.rank}名` : '--' }}</span></div>
+            <div><b>花費時間</b><span>{{ formatTime(elapsedMs) }}</span></div>
+            <div><b>總分數</b><span>{{ score }}分</span></div>
+            <button type="button" @click="showLeaderboard">總排行 ›</button>
+          </div>
+          <div class="result-actions result-summary-actions">
+            <button class="secondary" type="button" @click="goToScreen('lobby')">返回列表</button>
+            <button class="primary result-replay" type="button" @click="replay">重玩一次</button>
+          </div>
+        </section>
+        <section class="result-ranking-card">
+          <h2>排行榜</h2>
+          <div class="result-rank-head"><span>排名</span><span>學員</span><span>分數</span><span>計時</span></div>
+          <ol class="result-rank-list">
+            <li v-for="entry in resultRankEntries" :key="`${entry.rank}-${entry.displayName}`" :class="{ mine: entry.displayName === myResultEntry?.displayName }">
+              <span class="result-rank-place">
+                <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
+                <b v-else>{{ entry.rank }}</b>
+              </span>
+              <span>{{ entry.displayName }}</span>
+              <span>{{ entry.score }}</span>
+              <time>{{ formatRankTime(entry.elapsedMs) }}</time>
+            </li>
+            <template v-if="showMyRankBelowTopTen && myResultEntry">
+              <li class="result-rank-ellipsis" aria-hidden="true"><span>·</span><span>·</span><span>·</span></li>
+              <li class="mine out-of-top-ten">
+                <span class="result-rank-place"><b>{{ myResultEntry.rank }}</b></span>
+                <span>{{ myResultEntry.displayName }}</span>
+                <span>{{ myResultEntry.score }}</span>
+                <time>{{ formatRankTime(myResultEntry.elapsedMs) }}</time>
+              </li>
+            </template>
+          </ol>
+          <p class="rank-foot">目前共 <b>{{ leaderboard?.participantCount ?? 0 }}</b> 人參加，共玩 <b>{{ leaderboard?.playCount ?? 0 }}</b> 次</p>
+          <aside class="result-ranking-note">
+            <b>注意事項</b>
+            <ol>
+              <li>同分且作答時間相同時，依活動參加先後進行排序。</li>
+              <li>本遊戲獎項僅頒發第 1–6 名；第 7–10 名請再接再厲！</li>
+            </ol>
+          </aside>
+        </section>
+        <section class="sentence-review-card">
+          <h2>穿搭造句檢視</h2>
+          <div class="sentence-review-list">
+            <article v-for="review in questionReviews" :key="review.id" class="sentence-review-item" :class="{ passed: review.passed, failed: !review.passed }">
+              <header>
+                <b>第{{ review.index }}題</b>
+                <div class="sentence-review-badges">
+                  <span>得分：{{ review.score }} 分</span>
+                  <em>{{ review.passed ? '✓ 已通關' : review.skipped ? '— 已跳過' : '✕ 未通關' }}</em>
+                </div>
+              </header>
+              <div v-if="review.skipped" class="sentence-skip-note">
+                <b>已跳過</b>
+                <p>本題已跳過，獲得 0 分。</p>
+              </div>
+              <div v-if="!review.skipped" class="sentence-player">
+                <small>你組裝的客語句子：</small>
+                <p :class="{ incorrect: !review.passed }">{{ review.playerSentence }}</p>
+              </div>
+              <div v-if="!review.passed" class="sentence-hint">
+                <template v-if="!review.skipped">
+                  <b>{{ review.feedbackTitle }}</b>
+                  <p>{{ review.feedbackText }}</p>
+                </template>
+                <small>正確穿搭客語寫法之一：</small>
+                <code>{{ review.correctSentence }}</code>
+              </div>
+              <div v-else class="sentence-hint success">
+                <b>{{ review.feedbackTitle }}</b>
+                <p>{{ review.suggestion }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </article>
     </section>
 
     <section v-if="dictionaryOpen" class="dictionary-overlay" role="dialog" aria-modal="true" aria-label="穿搭小詞典" @click.self="closeDictionary">
