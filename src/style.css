@@ -1434,3 +1434,625 @@
   font-weight: 800;
 }
 
+/* ==========================================================================
+   桌機版 (Desktop) 元件顯示設定
+   ========================================================================== */
+.lobby-rank-toggle-btn,
+.mobile-dictionary-btn {
+  display: none !important; /* 桌機版預設隱藏這些元件 */
+}
+
+/* ==========================================================================
+   手機直式排版響應式適配 (Portrait Mode Optimization)
+   ========================================================================== */
+@media (orientation: portrait) or (max-width: 768px) {
+  /* 1. 隱藏裝置旋轉警告與控制滾動 */
+  .orientation-notice {
+    display: none !important;
+  }
+
+  body {
+    overflow-y: auto; /* 允許大廳或結算頁在直式模式下上下滾動 */
+  }
+
+  /* 2. 前導故事畫面 (Intro Screen) */
+  .story-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .story-character-container {
+    position: relative !important;
+    left: auto !important;
+    bottom: -20px !important;
+    height: 48vh !important;
+    width: 75vw !important;
+    min-width: 240px;
+    margin: auto auto 0;
+  }
+
+  .story-character-img {
+    transform: scale(1.35) translateY(12%) !important;
+  }
+
+  .story-character-img.surprised {
+    transform: scale(1.35) translateY(12%) scale(1.06) translateY(-4px) !important;
+  }
+
+  .story-character-img.worried {
+    transform: scale(1.35) translateY(12%) rotate(-3deg) !important;
+  }
+
+  .story-screen .dialogue-card {
+    position: relative !important;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 1.5rem !important;
+    border-radius: 0 !important;
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.88) !important;
+    margin: 0 !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1) !important;
+  }
+
+  .story-screen .dialogue-card p {
+    font-size: 1.1rem;
+    margin: 0.5rem 0 1rem !important;
+  }
+
+  .story-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .story-actions button {
+    font-size: 0.95rem;
+    padding: 0.55rem 1rem;
+  }
+
+  .mistake-bubbles {
+    left: 5% !important;
+    right: 5% !important;
+    top: 70px !important;
+    height: auto !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  .mistake-bubbles img {
+    width: clamp(100px, 25vw, 140px) !important;
+  }
+
+  .mistake-bubbles figcaption {
+    top: -24px;
+    font-size: 0.8rem;
+  }
+
+  /* 3. 遊戲大廳畫面 (Lobby Screen) */
+  .lobby-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 70px 16px 40px;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .lobby-card {
+    width: 100% !important;
+    margin: 10px 0 !important;
+    padding: 1.5rem !important;
+    transform: none !important;
+    box-shadow: 0 4px 15px rgba(110, 75, 40, 0.08) !important;
+  }
+
+  .lobby-card h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .lobby-info {
+    gap: 0.6rem;
+  }
+
+  .lobby-intro, .info-block, .warning {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  /* 直式下隱藏原有的右側欄排行榜 */
+  .lobby-leaderboard {
+    display: none !important;
+  }
+
+  /* 直式下顯示工具列的「★ 排行榜」按鈕 */
+  .lobby-rank-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 90px !important;
+    height: 25.2px !important;
+    padding: 5.6px 11.2px !important;
+    border-radius: 12px !important;
+    color: #fff !important;
+    background: #836225 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 16.8px !important;
+    box-shadow: none !important;
+  }
+
+  .lobby-rank-toggle-btn .star-icon {
+    color: #f7d134;
+    font-size: 15px;
+    line-height: 1;
+    vertical-align: middle;
+  }
+
+  /* 隱藏桌機版詞典/衣櫃按鈕 */
+  .desktop-only-dictionary {
+    display: none !important;
+  }
+
+  /* 手機版置中詞典/衣櫃按鈕 (先來訓練一下吧) */
+  .mobile-dictionary-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 280px;
+    height: 52px;
+    margin: 10px auto 14px !important;
+    padding: 4px 16px 4px 8px;
+    background: #ffffff;
+    border: 2px solid #f6e3c5;
+    border-radius: 999px;
+    box-shadow: 0 0 16px rgba(254, 240, 138, 0.85), 0 4px 8px rgba(110, 75, 40, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 5;
+  }
+
+  .mobile-dictionary-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 0 8px rgba(254, 240, 138, 0.6);
+  }
+
+  .mobile-dictionary-btn-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff4d9;
+    border: 1px solid #ebd3bb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-dictionary-btn-avatar img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+  }
+
+  .mobile-dictionary-btn-text {
+    color: #1f3a60;
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+  }
+
+  /* 4. 遊戲關卡畫面 (Game Screen) */
+  .game-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* 頂部工具列 */
+  .game-screen .toolbar {
+    height: 60px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .game-screen .toolbar strong {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    font-size: 0.95rem;
+    padding: 0.35rem 0.7rem;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  /* 任務卡置頂 */
+  .mission-card {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 94% !important;
+    margin: 8px auto 0 !important;
+    padding: 10px 14px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+    gap: 0.3rem !important;
+  }
+
+  .mission-card h2 {
+    font-size: 1.1rem !important;
+  }
+
+  .question-badge {
+    font-size: 0.95rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+
+  .question-description {
+    font-size: 0.85rem !important;
+  }
+
+  .progress {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* 角色渲染區域縮放與置中 */
+  .avatar-zone {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: 5px !important;
+    bottom: auto !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    height: calc(100vh - 440px) !important; /* 動態計算賸餘高度，避免與衣櫃重合 */
+    min-height: 240px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-end !important;
+  }
+
+  .avatar {
+    /* 縮小骨骼動畫以適應直式螢幕 */
+    transform: scale(0.68) !important;
+    transform-origin: bottom center !important;
+    height: 100% !important;
+  }
+
+  /* 部位控制浮動按鈕（放於左側，縮小） */
+  .body-controls {
+    left: 12px !important;
+    top: 15px !important;
+    padding: 8px 6px !important;
+    border-radius: 12px !important;
+    gap: 6px !important;
+    transform: scale(0.9);
+    transform-origin: left top;
+  }
+
+  .body-control > button:first-child {
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* 置底衣櫃 */
+  .closet-card {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    padding: 10px 14px 16px !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.12) !important;
+    background: #fffaf4 !important;
+    z-index: 10;
+  }
+
+  .closet-card nav {
+    gap: 0.2rem;
+  }
+
+  .closet-card nav button {
+    padding: 0.35rem 0.1rem;
+    font-size: 0.75rem;
+  }
+
+  .closet-card nav button b {
+    font-size: 1.1rem;
+  }
+
+  /* 服裝網格改為單排橫向/小巧顯示 */
+  .clothing-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    min-height: auto !important;
+    height: 90px !important;
+    margin: 8px 0 !important;
+  }
+
+  .clothing-card {
+    min-height: 82px !important;
+    padding: 0.25rem !important;
+  }
+
+  .clothing-thumbnail,
+  .clothing-card-image {
+    height: 60px !important;
+  }
+
+  /* 衣櫃底部操作區 */
+  .closet-footer {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px;
+  }
+
+  .closet-footer strong {
+    grid-column: span 3 !important;
+    padding: 0.35rem !important;
+    font-size: 0.85rem;
+  }
+
+  .closet-footer button {
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.85rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* 提示框位置微調，避免遮擋主要操作 */
+  .feedback {
+    bottom: 230px !important;
+    min-width: 290px !important;
+    width: 90% !important;
+    padding: 0.8rem !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+  }
+
+  .feedback p {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .feedback button {
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+  }
+
+  /* 5. 結算畫面 (Result Screen) */
+  .result-screen {
+    padding: 60px 12px 30px;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .result-panel {
+    width: 100% !important;
+    padding: 0 !important;
+    gap: 24px !important;
+  }
+
+  .result-summary-card {
+    width: 100% !important;
+    padding: 1.25rem 1rem !important;
+  }
+
+  .result-ranking-card,
+  .sentence-review-card {
+    width: 100% !important;
+    padding: 1rem 8px !important;
+  }
+
+  .result-rank-head,
+  .result-rank-list,
+  .sentence-review-list,
+  .result-ranking-note {
+    width: 100% !important;
+  }
+
+  /* 6. 穿搭小詞典彈窗 (Dictionary Modal) */
+  .dictionary-overlay {
+    padding: 12px !important;
+  }
+
+  .dictionary-modal {
+    width: 100% !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+  }
+
+  .dictionary-modal header {
+    padding: 0.75rem 1rem;
+  }
+
+  .dictionary-header-actions select {
+    min-width: 90px;
+    padding: 0.35rem 1.5rem 0.35rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .dictionary-search {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .dictionary-search input {
+    padding: 0.45rem;
+    font-size: 0.9rem;
+  }
+
+  .dictionary-content {
+    padding: 0.75rem;
+  }
+
+  /* 詞典列表改為單欄，避免在窄屏擠壓 */
+  .dictionary-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+
+  .dictionary-item {
+    padding: 0.7rem;
+    gap: 0.6rem;
+  }
+
+  .dictionary-colors > div {
+    grid-template-columns: repeat(2, 1fr) !important; /* 顏色列表改為雙欄 */
+  }
+}
+
+/* ==========================================================================
+   直式專用排行榜彈窗樣式 (Mobile Lobby Leaderboard Modal)
+   ========================================================================== */
+.lobby-rank-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(23, 32, 51, 0.6);
+  backdrop-filter: blur(3px);
+  padding: 1.5rem;
+}
+
+.lobby-rank-modal {
+  width: min(440px, 92vw);
+  max-height: 85vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  border-radius: 20px;
+  background: #fffdf8;
+  border: 1px solid #eddcc8;
+  box-shadow: 0 20px 48px rgba(110, 75, 40, 0.2);
+  overflow: hidden;
+}
+
+.lobby-rank-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  color: white;
+  background: #836225;
+}
+
+.lobby-rank-modal header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.lobby-rank-modal-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.lobby-rank-modal-content {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.lobby-rank-modal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff8e8;
+  margin-bottom: 12px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #4a4b4d;
+  border: 1px dashed #e3c28c;
+}
+
+.lobby-rank-modal-summary p {
+  margin: 0;
+}
+
+.lobby-rank-modal-summary b {
+  color: #836225;
+}
+
+.lobby-rank-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 16px;
+  list-style: none;
+}
+
+.lobby-rank-modal-list li {
+  display: grid;
+  grid-template-columns: 40px 1fr 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e5edf2;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4a4b4d;
+}
+
+.lobby-rank-modal-list li:nth-child(-n + 3) {
+  background: #fffbdf;
+  border-color: #fde047;
+}
+
+.lobby-rank-modal-place {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lobby-rank-modal-place img {
+  width: 24px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.lobby-rank-modal-place b {
+  font-size: 0.95rem;
+}
+
+.lobby-rank-modal-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-rank-modal-list time {
+  text-align: right;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.lobby-rank-modal footer {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+

@@ -42,6 +42,17 @@ const selectedDialect = ref<Dialect>('hak-sihien')
 const closetItemIds = ref<Record<ClosetTab, string[]>>({ tops: [], bottoms: [], shoes: [], accessories: [] })
 const dictionaryOpen = ref(false)
 const dictionarySearch = ref('')
+const lobbyLeaderboardOpen = ref(false)
+
+function openLobbyLeaderboard() {
+  playSound('click')
+  lobbyLeaderboardOpen.value = true
+}
+
+function closeLobbyLeaderboard() {
+  playSound('click')
+  lobbyLeaderboardOpen.value = false
+}
 let timer: number | undefined
 let bgmAudio: HTMLAudioElement | undefined
 
@@ -1001,8 +1012,18 @@ onBeforeUnmount(() => {
       <header class="lobby-toolbar" aria-label="首頁工具列">
         <button class="lobby-back-button" type="button" @click="goToScreen('intro')"><img :src="publicAssetUrl('ui/back.png')" alt="">返回列表</button>
         <button class="text-button sound-toggle-btn" type="button" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="">音效</button>
+        <button class="text-button lobby-rank-toggle-btn" type="button" @click="openLobbyLeaderboard"><span class="star-icon">★</span> 排行榜</button>
       </header>
-      <button class="dictionary-launch dictionary-image-launch" @click="openDictionary" aria-label="穿搭小詞典，阿梅的衣櫃"><img :src="publicAssetUrl('images-items/S2_m2_clodet.png')" alt=""></button>
+      <!-- 桌機版詞典衣櫃按鈕 -->
+      <button class="dictionary-launch dictionary-image-launch desktop-only-dictionary" @click="openDictionary" aria-label="穿搭小詞典，阿梅的衣櫃"><img :src="publicAssetUrl('images-items/S2_m2_clodet.png')" alt=""></button>
+
+      <!-- 手機直式專用詞典/衣櫃按鈕 -->
+      <button class="mobile-dictionary-btn" @click="openDictionary" aria-label="穿搭小詞典，阿梅的衣櫃">
+        <div class="mobile-dictionary-btn-avatar">
+          <img :src="publicAssetUrl('images-items/S2_m1_ame1.png')" alt="阿梅">
+        </div>
+        <span class="mobile-dictionary-btn-text">阿梅的衣櫃</span>
+      </button>
       <div class="lobby-card">
         <h1>歡迎來到 <span>穿搭小達人！</span></h1>
         <section class="lobby-info" aria-label="遊戲說明">
@@ -1033,6 +1054,43 @@ onBeforeUnmount(() => {
           </li>
         </ol>
       </aside>
+
+      <!-- 直式手機專用排行榜彈窗 -->
+      <div v-if="lobbyLeaderboardOpen" class="lobby-rank-modal-overlay" role="dialog" aria-modal="true" aria-label="即時排行榜" @click.self="closeLobbyLeaderboard">
+        <article class="lobby-rank-modal">
+          <header>
+            <h2>排行榜</h2>
+            <button class="lobby-rank-modal-close" aria-label="關閉排行榜" @click="closeLobbyLeaderboard">×</button>
+          </header>
+          <div class="lobby-rank-modal-content">
+            <div class="lobby-rank-modal-summary">
+              <p>您目前的排名：<b>{{ leaderboard?.myEntry?.rank ?? '--' }}</b></p>
+              <p>最佳紀錄：<b>{{ leaderboard?.myEntry ? formatTime(leaderboard.myEntry.elapsedMs) : '--' }}</b></p>
+            </div>
+            <ol class="lobby-rank-modal-list">
+              <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
+                <span class="lobby-rank-modal-place">
+                  <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
+                  <b v-else>{{ entry.rank }}</b>
+                </span>
+                <span class="lobby-rank-modal-name">{{ entry.displayName }}</span>
+                <time>{{ formatRankTime(entry.elapsedMs) }}</time>
+              </li>
+            </ol>
+            <p class="rank-foot">目前共 <b>{{ leaderboard?.participantCount ?? 0 }}</b> 人參加，共玩 <b>{{ leaderboard?.playCount ?? 0 }}</b> 次</p>
+            <aside class="result-ranking-note">
+              <b>注意事項</b>
+              <ol>
+                <li>同分且作答時間相同時，依活動參加先後進行排序。</li>
+                <li>本遊戲獎項僅頒發第 1–6 名；第 7–10 名請再接再厲！</li>
+              </ol>
+            </aside>
+          </div>
+          <footer>
+            <button class="secondary" @click="closeLobbyLeaderboard">關閉</button>
+          </footer>
+        </article>
+      </div>
     </section>
 
     <section v-else-if="screen === 'game'" class="game-screen" :style="gameBackgroundStyle">
