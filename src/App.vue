@@ -14,6 +14,9 @@ type QuestionReview = {
   score: number
   passed: boolean
   skipped: boolean
+  targetMatched: boolean
+  contextMistakes: string[]
+  questionDisplay: string
   playerSentence: string
   correctSentence: string
   feedbackTitle: string
@@ -227,6 +230,23 @@ function shuffle<T>(values: T[]) {
   return [...values].sort(() => Math.random() - 0.5)
 }
 
+function preferredDistractorsForQuestion(question: Question | undefined, tab: ClosetTab, inTab: Clothing[], requiredIds: Set<string>) {
+  if (!question) return []
+  const targetIds = Object.values(question.target ?? {})
+  const asksRainBoots = question.item?.includes('水靴筒') || targetIds.some((id) => id.startsWith('rain-boots') || id === 'shoes-rain')
+  const asksSwimCap = question.item?.includes('泅水帽') || targetIds.some((id) => id.startsWith('swim-cap') || id === 'head-swim-cap-yellow')
+
+  if (tab === 'shoes' && asksRainBoots) {
+    return shuffle(inTab.filter((item) => item.id.startsWith('rain-boots-') && !requiredIds.has(item.id)))
+  }
+
+  if (tab === 'accessories' && asksSwimCap) {
+    return shuffle(inTab.filter((item) => item.id.startsWith('swim-cap-') && item.colorKey !== 'yellow' && !requiredIds.has(item.id)))
+  }
+
+  return []
+}
+
 // 每個分頁最多顯示三件：題目正解必定保留，其餘從同分頁的全部物件隨機抽取。
 // 因此每一個物件都有機會成為誘答，但不會讓正解消失。
 function prepareCloset(question: Question | undefined) {
@@ -236,7 +256,12 @@ function prepareCloset(question: Question | undefined) {
   for (const tab of tabs) {
     const inTab = clothing.filter((item) => item.tab === tab.id)
     const guaranteed = inTab.filter((item) => requiredIds.has(item.id))
-    const distractors = shuffle(inTab.filter((item) => !requiredIds.has(item.id)))
+    const preferred = preferredDistractorsForQuestion(question, tab.id, inTab, requiredIds)
+    const preferredIds = new Set(preferred.map((item) => item.id))
+    const distractors = [
+      ...preferred,
+      ...shuffle(inTab.filter((item) => !requiredIds.has(item.id) && !preferredIds.has(item.id)))
+    ]
     next[tab.id] = shuffle([...guaranteed, ...distractors.slice(0, Math.max(0, 3 - guaranteed.length))]).map((item) => item.id)
   }
 
@@ -502,6 +527,17 @@ function outfitSentence(question: Question, outfit: Partial<Record<Slot, string>
   return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
 }
 
+function questionDisplaySentence(question: Question, index: number) {
+  const hasColor = Boolean(question.color)
+  const isReviewPinyinQuestion = index >= 5
+  const usePinyinForColor = isReviewPinyinQuestion && hasColor && pinyinField.value === 'color'
+  const usePinyinForItem = isReviewPinyinQuestion && (!hasColor || pinyinField.value === 'item')
+  const color = usePinyinForColor ? question.colorPinyin : question.color
+  const item = usePinyinForItem ? question.itemPinyin : question.item
+  const phrase = color ? `${color} 个 ${item}` : item
+  return `${question.verb ?? '著'} ${phrase}${question.context}`
+}
+
 function correctSentence(question: Question) {
   const targetId = promptTargetId.value ?? Object.values(question.target)[0]
   const item = clothing.find((entry) => entry.id === targetId)
@@ -510,7 +546,7 @@ function correctSentence(question: Question) {
   return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
 }
 
-function recordQuestionReview(question: Question, points: number, passed: boolean, skipped: boolean, feedbackKey: string, feedbackText: string) {
+function recordQuestionReview(question: Question, points: number, passed: boolean, skipped: boolean, feedbackKey: string, feedbackText: string, targetMatched = passed, contextMistakes: string[] = []) {
   if (questionReviews.value.some((review) => review.id === question.id)) return
   const meta = feedbackMeta(feedbackKey)
   questionReviews.value = [
@@ -521,6 +557,9 @@ function recordQuestionReview(question: Question, points: number, passed: boolea
       score: points,
       passed,
       skipped,
+      targetMatched,
+      contextMistakes,
+      questionDisplay: skipped ? '本題已跳過' : questionDisplaySentence(question, questionIndex.value),
       playerSentence: skipped ? '本題已跳過' : outfitSentence(question, selected.value),
       correctSentence: correctSentence(question),
       feedbackTitle: meta?.title || (passed ? '完全正確' : skipped ? '已跳過' : '不符合要求'),
@@ -770,12 +809,14 @@ function submitOutfit() {
   // Contextual appropriateness check for EVERY dressed item
   let isContextMatch = true
   let contextReason = ''
+  let contextMistakes: string[] = []
   const equippedItems = Object.values(selected.value).map(id => clothing.find(c => c.id === id)).filter((c): c is Clothing => Boolean(c))
 
   for (const item of equippedItems) {
     const valRes = validateItem(item, currentLevel, item.verbs[0] || '著', false)
     if (!valRes.valid) {
       isContextMatch = false
+      contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
       contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `穿戴衣物不合時宜：阿梅身上穿的「${item.name}」不符合此場合。`, { item: item.name, reason: '' })
       break
     }
@@ -783,16 +824,18 @@ function submitOutfit() {
 
   // Shivering / Sweating
   const warmItems = ['羽絨衫', '膨線衫', '頸圍仔']
-  const hasWarmClothing = equippedItems.some(c => warmItems.includes(c.name))
-  if (seasonalWeather === '熱' && hasWarmClothing) {
+  const warmClothing = equippedItems.filter(c => warmItems.includes(c.name))
+  if (seasonalWeather === '熱' && warmClothing.length > 0) {
     isContextMatch = false
+    contextMistakes = warmClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
     contextReason = feedbackMessage('hot_with_warm_clothing', '太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！')
   }
 
   const coldItems = ['短衫', '短褲', '裙']
-  const hasColdClothing = equippedItems.some(c => coldItems.includes(c.name))
-  if (seasonalWeather === '冷' && hasColdClothing) {
+  const coldClothing = equippedItems.filter(c => coldItems.includes(c.name))
+  if (seasonalWeather === '冷' && coldClothing.length > 0) {
     isContextMatch = false
+    contextMistakes = coldClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
     contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～小主人在瑟瑟發抖！你雖然寫對了客語單字，但是冬天穿短袖短褲會著涼喔！快幫模特兒換成防寒的羽絨衫或長褲吧！')
   }
 
@@ -801,6 +844,7 @@ function submitOutfit() {
     const semanticErr = checkSemanticConflict(verb, colorName, itemName, currentLevel, question.context)
     if (semanticErr) {
       isContextMatch = false
+      contextMistakes = [`${colorName !== 'X' && colorName !== '無' ? `${colorName}个` : ''}${itemName}`]
       contextReason = semanticErr.reason
     }
   }
@@ -828,7 +872,7 @@ function submitOutfit() {
 
   if (tier === 1) {
     const successText = feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！')
-    if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText)
+    if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText, true)
     playSound('next')
     feedback.value = { kind: 'success', canAdvance: true, text: successText }
   } else {
@@ -845,7 +889,7 @@ function submitOutfit() {
       feedbackKey = 'tier_target_and_context_wrong'
       text = feedbackMessage('tier_target_and_context_wrong', '再想一下！句子中的空格填寫不正確，且模特兒的穿戴也完全不符合當下的情境要求喔。')
     }
-    if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text)
+    if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text, isTargetMatch, contextMistakes)
     feedback.value = { kind: 'error', canAdvance: true, text }
   }
 }
@@ -857,7 +901,7 @@ function advanceQuestion(skipped = false) {
     const text = feedbackMessage('skip_question', '本題已跳過，獲得 0 分。')
     if (question && questionScores.value[question.id] === undefined) {
       questionScores.value = { ...questionScores.value, [question.id]: 0 }
-      recordQuestionReview(question, 0, false, true, 'skip_question', text)
+      recordQuestionReview(question, 0, false, true, 'skip_question', text, false, [])
     }
     feedback.value = { kind: 'error', text }
   }
@@ -1068,16 +1112,18 @@ onBeforeUnmount(() => {
                 <p>本題已跳過，獲得 0 分。</p>
               </div>
               <div v-if="!review.skipped" class="sentence-player">
-                <small>你組裝的客語句子：</small>
-                <p :class="{ incorrect: !review.passed }">{{ review.playerSentence }}</p>
+                <small>題目：</small>
+                <p>{{ review.questionDisplay }}</p>
               </div>
               <div v-if="!review.passed" class="sentence-hint">
                 <template v-if="!review.skipped">
                   <b>{{ review.feedbackTitle }}</b>
                   <p>{{ review.feedbackText }}</p>
                 </template>
-                <small>正確穿搭客語寫法之一：</small>
-                <code>{{ review.correctSentence }}</code>
+                <div v-if="review.targetMatched && review.contextMistakes.length" class="sentence-context-mistakes">
+                  <small>這次主要不合適的穿戴：</small>
+                  <p>{{ review.contextMistakes.join('、') }}</p>
+                </div>
               </div>
               <div v-else class="sentence-hint success">
                 <b>{{ review.feedbackTitle }}</b>

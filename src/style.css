@@ -113,7 +113,7 @@
   height: 72vh;
   width: min(34vw, 420px);
   min-width: 280px;
-  overflow: hidden; /* Clean waist crop, preventing visual breaks */
+  overflow: visible;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -1119,6 +1119,20 @@
   font-size: 18px;
 }
 
+.sentence-context-mistakes {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.sentence-context-mistakes p {
+  margin: 4px 0 0;
+  color: #c2410c;
+  font-weight: 900;
+}
+
 .sentence-hint code {
   display: inline-block;
   margin-top: 6px;
@@ -1372,5 +1386,15 @@
 
 .sentence-hint p,
 .sentence-hint code {
+  font-size: 10px;
+}
+
+.sentence-context-mistakes {
+  margin: 6px 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.sentence-context-mistakes p {
   font-size: 10px;
 }

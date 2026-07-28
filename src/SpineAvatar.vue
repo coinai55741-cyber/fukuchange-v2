@@ -123,7 +123,7 @@ function attachmentsForItem(itemId: string) {
   if (itemId.startsWith('hat-')) return [`hat${suffix}`]
   if (itemId.startsWith('scarf-')) return [`scarf_B${suffix}`]
   if (itemId.startsWith('knee-protector-')) return [`knee_protector_B${suffix}`]
-  if (itemId.startsWith('swim-cap-')) return [`head_swim_cap${suffix}`, `head-swin${suffix}`]
+  if (itemId.startsWith('swim-cap-')) return ['head_swim_cap', `head-swin${suffix}`]
   return []
 }
 

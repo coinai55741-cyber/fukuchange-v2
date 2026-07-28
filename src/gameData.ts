@@ -174,7 +174,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('short-shirt', '短衫', 'body', 'tops', 'shirt.png'),
   ...makeDyeVariants('puffer-jacket', '羽絨衫', 'body', 'tops', 'puffer_jacket_B.png'),
   ...makeDyeVariants('sweater', '膨線衫', 'body', 'tops', 'sweater_B.png'),
-  ...makeDyeVariants('swimsuit', '泅水衫', 'body', 'tops', 'swimsuit_B.png', dyeColors.filter((color) => color.key !== 'red_flower_pattern')),
+  ...makeDyeVariants('swimsuit', '泅水衫', 'body', 'tops', 'swimsuit_B.png'),
   ...makeDyeVariants('long-pants', '長褲', 'pants', 'bottoms', 'long_pants_B.png'),
   ...makeDyeVariants('shorts', '短褲', 'pants', 'bottoms', 'shorts_B.png'),
   ...makeDyeVariants('skirt', '裙', 'pants', 'bottoms', 'skirt_B_over.png'),
@@ -183,7 +183,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png'),
   ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),
-  ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png', dyeColors.filter((color) => color.key !== 'red_flower_pattern')),
+  ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png'),
 ].filter((item) => {
   const key = `${item.name}-${item.color}`
   if (seenDyes.has(key)) {
