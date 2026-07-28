@@ -131,7 +131,7 @@ const filteredDictionaryItems = computed(() => {
   return dictionaryItems.value.filter((item) => `${item.name} ${item.pinyin} ${item.translation} ${item.description}`.toLowerCase().includes(query))
 })
 
-const questionText = computed(() => {
+const hakkaBadgeText = computed(() => {
   const question = currentQuestion.value
   if (!question) return ''
   const hasColor = Boolean(question.color)
@@ -140,8 +140,16 @@ const questionText = computed(() => {
 
   const color = usePinyinForColor ? question.colorPinyin : question.color
   const item = usePinyinForItem ? question.itemPinyin : question.item
-  const phrase = color ? `${color} 个 ${item}` : item
-  return `${question.verb ?? '著'} ${phrase}${question.context}`
+  const phrase = color ? `${color}个${item}` : item
+  return `${question.verb ?? '著'}${phrase}`
+})
+
+const questionDescriptionText = computed(() => currentQuestion.value?.context.replace(/^，/, '') ?? '')
+
+const questionText = computed(() => {
+  const question = currentQuestion.value
+  if (!question) return ''
+  return `${hakkaBadgeText.value}${question.context}`
 })
 
 const seasonWeatherLabel = computed(() => {
@@ -1035,7 +1043,7 @@ onBeforeUnmount(() => {
         </div>
         <strong>⏱ {{ formatTime(elapsedMs) }}</strong>
       </header>
-      <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><p>{{ questionText }}</p></aside>
+      <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar :outfit="selected" /></section>
       <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></span></button></div><div class="closet-footer"><strong>完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
@@ -1157,4 +1165,5 @@ onBeforeUnmount(() => {
     </section>
   </main>
 </template>
+
 
