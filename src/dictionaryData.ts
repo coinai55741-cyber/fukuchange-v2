@@ -1,27 +1,87 @@
-export type DictionaryItem = { name: string; pinyin: string; translation: string; description: string; image: string }
+import dictionaryEntriesCsv from '../data/i18n/dictionary_entries.csv?raw'
 
-export const dictionaryItems: DictionaryItem[] = [
-  { name: '短衫', pinyin: 'donˋ qiu', translation: '短袖上衣', description: '透氣清爽的短袖棉質上衣，適合夏日活動。', image: 'shirt.png' },
-  { name: '長褲', pinyin: 'congˇ fu', translation: '長褲', description: '適合在郊外穿，能遮擋蚊蟲。', image: 'long_pants_B.png' },
-  { name: '短褲', pinyin: 'donˋ fu', translation: '短褲', description: '運動與高溫天氣的清涼選擇。', image: 'shorts_B.png' },
-  { name: '裙', pinyin: 'kiunˇ', translation: '裙子', description: '舒適的日常或宴會的優雅打扮。', image: 'skirt_B_over.png' },
-  { name: '羽絨衫', pinyin: 'iˋ iungˇ samˊ', translation: '羽絨衣', description: '極致防寒的羽絨外套，適合寒冬出門穿搭。', image: 'puffer_jacket_B.png' },
-  { name: '膨線衫', pinyin: 'pong xien samˊ', translation: '毛衣', description: '針織膨線毛衣，觸感溫暖舒適。', image: 'sweater_B.png' },
-  { name: '頸圍仔', pinyin: 'giangˋ viˇ eˋ', translation: '圍巾', description: '繞在脖子上的保暖毛織品。', image: 'scarf_B.png' },
-  { name: '鞋', pinyin: 'haiˇ', translation: '鞋子', description: '適合健行等活動的運動鞋。', image: 'sneakers_B.png' },
-  { name: '水靴筒', pinyin: 'suiˋ hioˊ tungˇ', translation: '雨鞋／雨靴', description: '防水防泥的橡膠中筒雨靴。', image: 'rain_boots_B.png' },
-  { name: '帽仔', pinyin: 'mo eˋ', translation: '帽子', description: '遮太陽的帽子。', image: 'hat.png' },
-  { name: '膝頭落仔', pinyin: 'qidˋ teuˇ labˋ eˋ', translation: '護膝', description: '溜直排輪時套在膝蓋上的防磨防撞護具。', image: 'knee_protector_B.png' },
-  { name: '藍衫', pinyin: 'lamˇ samˊ', translation: '客家藍衫', description: '傳統客家婦女的經典藍染大襟衫。', image: 'hakka_shirt_B.png' },
-  { name: '泅水帽', pinyin: 'qiuˇ suiˋ moapˋ', translation: '泳帽', description: '在游泳池中必須穿的專用配件。', image: 'head-swin.png' },
-  { name: '泅水衫', pinyin: 'siuˊ suiˋ samˊ', translation: '泳衣', description: '戲水時穿著的專用服裝。', image: 'swimsuit_B.png' },
-]
+export type DialectCode = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
 
-export const dictionaryColors = [
-  { name: '柑仔色', pinyin: 'gamˊ eˋ sedˋ', translation: '橘色', hex: '#f97316' },
-  { name: '黃色', pinyin: 'vongˇ sedˋ', translation: '黃色', hex: '#eab308' },
-  { name: '白色', pinyin: 'pag sedˋ', translation: '白色', hex: '#ffffff' },
-  { name: '烏色', pinyin: 'vuˊ sedˋ', translation: '黑色', hex: '#1e293b' },
-  { name: '吊菜色', pinyin: 'diau coi sedˋ', translation: '紫色', hex: '#542480' },
-  { name: '紅色花圖案', pinyin: 'fungˇ sedˋ faˊ bu', translation: '紅色花布', hex: '#ec4899', pattern: true },
-]
+export type DictionaryItem = {
+  id: string
+  type: 'item' | 'color'
+  name: string
+  pinyin: string
+  translation: string
+  description: string
+  image: string
+  hex?: string
+  pattern?: boolean
+}
+
+type CsvRow = Record<string, string>
+
+const DIALECT_FIELDS: Record<DialectCode, { text: string; pinyin: string }> = {
+  'hak-sihien': { text: '四縣客語字', pinyin: '四縣拼音' },
+  'hak-hailu': { text: '海陸客語字', pinyin: '海陸拼音' },
+  'hak-dapu': { text: '大埔客語字', pinyin: '大埔拼音' },
+  'hak-raoping': { text: '饒平客語字', pinyin: '饒平拼音' },
+  'hak-zhaoan': { text: '詔安客語字', pinyin: '詔安拼音' },
+  'hak-namsihien': { text: '南四縣客語字', pinyin: '南四縣拼音' },
+}
+
+function parseCsv(raw: string): CsvRow[] {
+  const rows: string[][] = []
+  let current = ''
+  let row: string[] = []
+  let inQuotes = false
+
+  for (let i = 0; i < raw.length; i += 1) {
+    const char = raw[i]
+    const next = raw[i + 1]
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"'
+      i += 1
+    } else if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === ',' && !inQuotes) {
+      row.push(current)
+      current = ''
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i += 1
+      row.push(current)
+      if (row.some(cell => cell.trim())) rows.push(row)
+      row = []
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  if (current || row.length) {
+    row.push(current)
+    if (row.some(cell => cell.trim())) rows.push(row)
+  }
+
+  const headers = rows.shift()?.map(cell => cell.trim()) ?? []
+  return rows.map(cells => Object.fromEntries(headers.map((header, index) => [header, cells[index]?.trim() ?? ''])))
+}
+
+function toBoolean(value: string) {
+  return ['1', 'true', 'TRUE', '是', 'yes', 'Y'].includes(value.trim())
+}
+
+export function getDictionaryItems(dialect: DialectCode = 'hak-sihien') {
+  const fields = DIALECT_FIELDS[dialect] ?? DIALECT_FIELDS['hak-sihien']
+  const fallbackFields = DIALECT_FIELDS['hak-sihien']
+
+  return parseCsv(dictionaryEntriesCsv)
+    .filter(row => row['啟用'] !== '否')
+    .sort((a, b) => Number(a['排序'] || 999) - Number(b['排序'] || 999))
+    .map<DictionaryItem>((row) => ({
+      id: row['資料ID'],
+      type: row['類型'] === 'color' ? 'color' : 'item',
+      name: row[fields.text] || row[fallbackFields.text] || row['中文釋義'] || row['資料ID'],
+      pinyin: row[fields.pinyin] || row[fallbackFields.pinyin],
+      translation: row['中文釋義'],
+      description: row['小知識'],
+      image: row['圖片檔名'],
+      hex: row['色票HEX'],
+      pattern: toBoolean(row['是否花布']),
+    }))
+}

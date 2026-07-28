@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { clothing, questions, tabs, rulesConfig, feedbackMessages, feedbackMessageRecords, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
-import { dictionaryColors, dictionaryItems } from './dictionaryData'
+import { getDictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
@@ -121,10 +121,14 @@ function seasonalWeatherForQuestion(question?: Question | null) {
   return tags.includes('冷') ? '冷' : '熱'
 }
 
+const dictionaryEntries = computed(() => getDictionaryItems(selectedDialect.value))
+const dictionaryItems = computed(() => dictionaryEntries.value.filter(item => item.type === 'item'))
+const dictionaryColors = computed(() => dictionaryEntries.value.filter(item => item.type === 'color'))
+
 const filteredDictionaryItems = computed(() => {
   const query = dictionarySearch.value.trim().toLowerCase()
-  if (!query) return dictionaryItems
-  return dictionaryItems.filter((item) => `${item.name} ${item.pinyin} ${item.translation} ${item.description}`.toLowerCase().includes(query))
+  if (!query) return dictionaryItems.value
+  return dictionaryItems.value.filter((item) => `${item.name} ${item.pinyin} ${item.translation} ${item.description}`.toLowerCase().includes(query))
 })
 
 const questionText = computed(() => {
@@ -1147,9 +1151,10 @@ onBeforeUnmount(() => {
           </div>
         </header>
         <div class="dictionary-search"><span>⌕</span><input v-model="dictionarySearch" placeholder="搜尋客語名詞、華語翻譯或拼音…"><button v-if="dictionarySearch" @click="resetDictionarySearch">重設</button></div>
-        <div class="dictionary-content"><div v-if="filteredDictionaryItems.length" class="dictionary-grid"><article v-for="item in filteredDictionaryItems" :key="item.name" class="dictionary-item"><div class="dictionary-image"><img :src="assetUrl(item.image)" :alt="item.name"></div><div><b>{{ item.name }}</b><p class="dictionary-pinyin">拼音：{{ item.pinyin }}</p><p>釋義：{{ item.translation }}</p><p class="dictionary-knowledge"><span>小知識</span>{{ item.description }}</p></div></article></div><p v-else class="dictionary-empty">找不到「{{ dictionarySearch }}」相關詞彙。</p><section class="dictionary-colors"><h3>🎨 客語顏色名詞</h3><div class="dictionary-grid"><article v-for="color in dictionaryColors" :key="color.name" class="dictionary-item dictionary-color-item"><div class="dictionary-image dictionary-color-image"><i :class="{ pattern: color.pattern }" :style="color.pattern ? { '--pattern': `url('${assetUrl('hakka_pattern.png')}')` } : { '--color': color.hex }"></i></div><div><b>{{ color.name }}</b><p class="dictionary-pinyin">拼音：{{ color.pinyin }}</p><p>釋義：{{ color.translation }}</p></div></article></div></section></div>
+        <div class="dictionary-content"><div v-if="filteredDictionaryItems.length" class="dictionary-grid"><article v-for="item in filteredDictionaryItems" :key="item.name" class="dictionary-item"><div class="dictionary-image"><img :src="assetUrl(item.image)" :alt="item.name"></div><div><b>{{ item.name }}</b><p class="dictionary-pinyin">拼音：{{ item.pinyin }}</p><p>釋義：{{ item.translation }}</p><p class="dictionary-knowledge"><span>小知識</span>{{ item.description }}</p></div></article></div><p v-else class="dictionary-empty">找不到「{{ dictionarySearch }}」相關詞彙。</p><section class="dictionary-colors"><h3>客語顏色名詞</h3><div class="dictionary-grid"><article v-for="color in dictionaryColors" :key="color.name" class="dictionary-item dictionary-color-item"><div class="dictionary-image dictionary-color-image"><i :class="{ pattern: color.pattern }" :style="color.pattern ? { '--color': color.hex, '--pattern': `url('${assetUrl(color.image || 'hakka_pattern.png')}')` } : { '--color': color.hex }"></i></div><div><b>{{ color.name }}</b><p class="dictionary-pinyin">拼音：{{ color.pinyin }}</p><p>釋義：{{ color.translation }}</p></div></article></div></section></div>
         <footer><button class="secondary" @click="closeDictionary">關閉詞典</button></footer>
       </article>
     </section>
   </main>
 </template>
+
