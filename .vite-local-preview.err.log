@@ -268,3 +268,60 @@ If you intend to use the URL of that asset, use [36m/quiz/feedback_messages.csv
 [33mAssets in public directory cannot be imported from JavaScript.
 If you intend to import that asset, put the file in the src directory, and use [36m/src/i18n/dictionary_entries.csv?raw[33m instead of [36m/data/i18n/dictionary_entries.csv?raw[33m.
 If you intend to use the URL of that asset, use [36m/i18n/dictionary_entries.csv?url&raw[33m.[39m
+[2m下午9:25:16[22m [31m[1m[vite][22m[39m [31mInternal server error: Element is missing end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/Yezi/G_project/S2_mission_game/fukuchange_v2/src/App.vue[39m:1041:7
+[33m  1039|          <button class="primary start" @click="startGame">開始遊戲</button>
+  1040|        </div>
+  1041|        <aside class="lobby-leaderboard" aria-label="即時排行榜">
+     |         ^
+  1042|          <img class="lobby-rank-banner" :src="publicAssetUrl('ui/rank_banner.png')" alt="即時排行榜">
+  1043|          <div class="lobby-rank-summary">[39m
+      at createCompilerError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3035:5)
+      at Object.onclosetag (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2402:13)
+      at Tokenizer.stateInClosingTagName (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3074:13)
+      at Object.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at handleHotUpdate (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:2198:26)
+[2m下午9:25:33[22m [31m[1m[vite][22m[39m [31mInternal server error: Element is missing end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/Yezi/G_project/S2_mission_game/fukuchange_v2/src/App.vue[39m:1041:7
+[33m  1039|          <button class="primary start" @click="startGame">開始遊戲</button>
+  1040|        </div>
+  1041|        <aside class="lobby-leaderboard" aria-label="即時排行榜">
+     |         ^
+  1042|          <img class="lobby-rank-banner" :src="publicAssetUrl('ui/rank_banner.png')" alt="即時排行榜">
+  1043|          <div class="lobby-rank-summary">[39m
+      at createCompilerError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3035:5)
+      at Object.onclosetag (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2402:13)
+      at Tokenizer.stateInClosingTagName (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3074:13)
+      at Object.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at handleHotUpdate (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:2198:26)
+[2m下午9:25:53[22m [31m[1m[vite][22m[39m [31mInternal server error: Element is missing end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mD:/Yezi/G_project/S2_mission_game/fukuchange_v2/src/App.vue[39m:1049:11
+[33m  1047|          <button class="lobby-rank-link" type="button" @click="showLeaderboard">查看總排名</button>
+  1048|          <ol>
+  1049|            <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
+     |             ^
+  1050|              <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
+  1051|              <b v-else>{{ entry.rank }}</b>[39m
+      at createCompilerError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3035:5)
+      at Object.onclosetag (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2402:13)
+      at Tokenizer.stateInClosingTagName (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3074:13)
+      at Object.parse (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (D:\Yezi\G_project\S2_mission_game\fukuchange_v2\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:71:43)
+      at handleHotUpdate (file:///D:/Yezi/G_project/S2_mission_game/fukuchange_v2/node_modules/@vitejs/plugin-vue/dist/index.mjs:2198:26)

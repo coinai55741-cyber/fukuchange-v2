@@ -941,6 +941,10 @@ function advanceQuestion(skipped = false) {
   pinyinField.value = Math.random() < 0.5 ? 'color' : 'item'
 }
 
+function closeFeedback() {
+  feedback.value = null
+}
+
 async function finishGame() {
   window.clearInterval(timer)
   leaderboard.value = await leaderboardService.submitGameResult(9, { score: score.value, elapsedMs: elapsedMs.value })
@@ -1054,43 +1058,6 @@ onBeforeUnmount(() => {
           </li>
         </ol>
       </aside>
-
-      <!-- 直式手機專用排行榜彈窗 -->
-      <div v-if="lobbyLeaderboardOpen" class="lobby-rank-modal-overlay" role="dialog" aria-modal="true" aria-label="即時排行榜" @click.self="closeLobbyLeaderboard">
-        <article class="lobby-rank-modal">
-          <header>
-            <h2>排行榜</h2>
-            <button class="lobby-rank-modal-close" aria-label="關閉排行榜" @click="closeLobbyLeaderboard">×</button>
-          </header>
-          <div class="lobby-rank-modal-content">
-            <div class="lobby-rank-modal-summary">
-              <p>您目前的排名：<b>{{ leaderboard?.myEntry?.rank ?? '--' }}</b></p>
-              <p>最佳紀錄：<b>{{ leaderboard?.myEntry ? formatTime(leaderboard.myEntry.elapsedMs) : '--' }}</b></p>
-            </div>
-            <ol class="lobby-rank-modal-list">
-              <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
-                <span class="lobby-rank-modal-place">
-                  <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
-                  <b v-else>{{ entry.rank }}</b>
-                </span>
-                <span class="lobby-rank-modal-name">{{ entry.displayName }}</span>
-                <time>{{ formatRankTime(entry.elapsedMs) }}</time>
-              </li>
-            </ol>
-            <p class="rank-foot">目前共 <b>{{ leaderboard?.participantCount ?? 0 }}</b> 人參加，共玩 <b>{{ leaderboard?.playCount ?? 0 }}</b> 次</p>
-            <aside class="result-ranking-note">
-              <b>注意事項</b>
-              <ol>
-                <li>同分且作答時間相同時，依活動參加先後進行排序。</li>
-                <li>本遊戲獎項僅頒發第 1–6 名；第 7–10 名請再接再厲！</li>
-              </ol>
-            </aside>
-          </div>
-          <footer>
-            <button class="secondary" @click="closeLobbyLeaderboard">關閉</button>
-          </footer>
-        </article>
-      </div>
     </section>
 
     <section v-else-if="screen === 'game'" class="game-screen" :style="gameBackgroundStyle">
@@ -1104,7 +1071,13 @@ onBeforeUnmount(() => {
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar :outfit="selected" /></section>
       <aside class="closet-card"><nav><button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)"><b>{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt=""></span></button></div><div class="closet-footer"><strong>完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" @click="submitOutfit">送出搭配</button><button class="secondary" @click="resetOutfit">重置服裝</button><button class="secondary" @click="advanceQuestion(true)">跳過這題</button></div></aside>
-      <div v-if="feedback" class="feedback" :class="feedback.kind"><p>{{ feedback.text }}</p><button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button></div>
+      <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" @click.self="closeFeedback">
+        <div class="feedback" :class="feedback.kind">
+          <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
+          <p>{{ feedback.text }}</p>
+          <button v-if="feedback.canAdvance" class="primary" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button>
+        </div>
+      </div>
     </section>
 
     <section v-else class="result-screen" :style="resultBackgroundStyle">
@@ -1221,6 +1194,43 @@ onBeforeUnmount(() => {
         <footer><button class="secondary" @click="closeDictionary">關閉詞典</button></footer>
       </article>
     </section>
+
+    <!-- 直式手機專用排行榜彈窗 -->
+    <div v-if="lobbyLeaderboardOpen" class="lobby-rank-modal-overlay" role="dialog" aria-modal="true" aria-label="即時排行榜" @click.self="closeLobbyLeaderboard">
+      <article class="lobby-rank-modal">
+        <header>
+          <h2>排行榜</h2>
+          <button class="lobby-rank-modal-close" aria-label="關閉排行榜" @click="closeLobbyLeaderboard">×</button>
+        </header>
+        <div class="lobby-rank-modal-content">
+          <div class="lobby-rank-modal-summary">
+            <p>您目前的排名：<b>{{ leaderboard?.myEntry?.rank ?? '--' }}</b></p>
+            <p>最佳紀錄：<b>{{ leaderboard?.myEntry ? formatTime(leaderboard.myEntry.elapsedMs) : '--' }}</b></p>
+          </div>
+          <ol class="lobby-rank-modal-list">
+            <li v-for="entry in lobbyRankEntries" :key="`${entry.rank}-${entry.displayName}`">
+              <span class="lobby-rank-modal-place">
+                <img v-if="entry.rank <= 3" :src="publicAssetUrl(`ui/icon_rank${entry.rank}.png`)" alt="">
+                <b v-else>{{ entry.rank }}</b>
+              </span>
+              <span class="lobby-rank-modal-name">{{ entry.displayName }}</span>
+              <time>{{ formatRankTime(entry.elapsedMs) }}</time>
+            </li>
+          </ol>
+          <p class="rank-foot">目前共 <b>{{ leaderboard?.participantCount ?? 0 }}</b> 人參加，共玩 <b>{{ leaderboard?.playCount ?? 0 }}</b> 次</p>
+          <aside class="result-ranking-note">
+            <b>注意事項</b>
+            <ol>
+              <li>同分且作答時間相同時，依活動參加先後進行排序。</li>
+              <li>本遊戲獎項僅頒發第 1–6 名；第 7–10 名請再接再厲！</li>
+            </ol>
+          </aside>
+        </div>
+        <footer>
+          <button class="secondary" @click="closeLobbyLeaderboard">關閉彈窗</button>
+        </footer>
+      </article>
+    </div>
   </main>
 </template>
 
