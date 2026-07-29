@@ -1834,21 +1834,26 @@
   }
 
   .mobile-dictionary-btn-avatar {
-    width: 38px;
-    height: 38px;
+    position: relative;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
     border-radius: 50%;
     overflow: hidden;
     background: #fff4d9;
     border: 1px solid #ebd3bb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-shadow: 0 0 0 2px #ffffffcc;
   }
 
   .mobile-dictionary-btn-avatar img {
-    width: 90%;
-    height: 90%;
-    object-fit: contain;
+    position: absolute;
+    left: 50%;
+    top: 43%;
+    width: 230%;
+    max-width: none;
+    height: auto;
+    object-fit: initial;
+    transform: translate(-50%, -50%);
   }
 
   .mobile-dictionary-btn-text {
@@ -3031,3 +3036,31 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* AA follow-up fixes for game closet and contrast */
+.clothing-grid[hidden] {
+  display: none !important;
+}
+.body-controls button {
+  color: #185f80 !important;
+}
+.closet-card nav button {
+  color: #5f554c !important;
+  font-weight: 800;
+}
+.closet-card nav button.active {
+  color: #185f80 !important;
+  border-color: #185f80 !important;
+}
+.body-control > button:first-child {
+  color: #185f80 !important;
+}
+.body-control > button:first-child:hover {
+  color: #185f80 !important;
+}
+.body-control > button:first-child.equipped {
+  background: #185f80 !important;
+  color: #fff !important;
+}
+
+

@@ -26,6 +26,7 @@ export type Clothing = {
 export type Question = {
   id: string
   stageId?: number
+  pool?: number
   verb?: string
   context: string
   color: string
@@ -197,7 +198,7 @@ const targetItemIds: Record<string, string> = {
   'hakka_shirt@none': 'body-blue', 'short_shirt@yellow': 'body-yellow', 'short_shirt@white': 'body-white', 'short_shirt@black': 'body-black',
   'shorts@yellow': 'pants-yellow', 'shorts@white': 'pants-shorts-white', 'shorts@black': 'pants-shorts-black',
   'long_pants@black': 'pants-black', 'long_pants@white': 'pants-long-white', 'long_pants@yellow': 'pants-long-yellow', 'skirt@white': 'pants-white',
-  'shoes@white': 'shoes-white', 'shoes@black': 'shoes-black', 'rain_boots@yellow': 'shoes-rain',
+  'shoes@white': 'shoes-white', 'shoes@black': 'shoes-black', 'rain_boots@yellow': 'shoes-rain', 'rain_boots@black': 'rain-boots-black',
   'hat@yellow': 'head-yellow', 'hat@black': 'head-black', 'hat@white': 'head-white', 'swim_cap@yellow': 'head-swim-cap-yellow', 'swimsuit@yellow': 'body-swimsuit-yellow',
   'puffer_jacket@white': 'body-puffer-white', 'puffer_jacket@black': 'body-puffer-black', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white',
 }
@@ -278,6 +279,7 @@ function buildQuestionsFromCsv(): Question[] {
     return [{
       id: `csv-${row.stage_id}`,
       stageId: Number(row.stage_id),
+      pool: Number(row.Pool) || undefined,
       verb: row.stage_title.split(',')[0].trim(),
       context: row.context_text,
       color,

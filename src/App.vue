@@ -388,6 +388,7 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     const hasCold = tags.includes('冷')
     const hasRain = tags.includes('下雨') || tags.includes('rain')
     const hasWater = tags.includes('水上') || tags.includes('water')
+    if (tags.includes('打掃')) return 'cleaning'
     if (hasCold && hasRain) return 'cold-rain'
     if (hasCold) return 'cold'
     if (hasRain) return 'rain'
@@ -404,69 +405,102 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
 
   const categoryWeight = (category: string) => {
     if (category === 'cold-rain') return 2.4
+    if (category === 'cleaning') return 2.2
     if (category === 'cold' || category === 'rain' || category === 'water') return 2
     if (category === 'night' || category === 'culture') return 1.6
     return 1
   }
 
-  const result: Question[] = []
-  const selectedIds = new Set<string>()
-  const itemCounts = new Map<string, number>()
-  const categoryCounts = new Map<string, number>()
-  const maxSameItem = 2
-  const maxSameCategory = 2
+  const usedPromptKeys = new Set<string>()
+  const usedPromptItems = new Set<string>()
+  const usedPromptColors = new Set<string>()
+  const promptKey = (question: Question) => `${question.item}::${question.color || '無色'}`
 
-  const canUseQuestion = (question: Question, relaxItemLimit = false, relaxCategoryLimit = false) => {
-    if (selectedIds.has(question.id)) return false
-    const category = questionCategory(question)
-    if (!relaxItemLimit && (itemCounts.get(question.item) ?? 0) >= maxSameItem) return false
-    if (!relaxCategoryLimit && (categoryCounts.get(category) ?? 0) >= maxSameCategory) return false
-    return true
-  }
+  const pickQuestions = (poolQuestions: Question[], targetCount: number, priorityCategories: string[]) => {
+    const result: Question[] = []
+    const selectedIds = new Set<string>()
+    const poolPromptItems = new Set<string>()
+    const poolPromptColors = new Set<string>()
+    const itemCounts = new Map<string, number>()
+    const categoryCounts = new Map<string, number>()
+    const maxSameItem = 2
+    const maxSameCategory = 2
 
-  const addQuestion = (question: Question) => {
-    const category = questionCategory(question)
-    result.push(question)
-    selectedIds.add(question.id)
-    itemCounts.set(question.item, (itemCounts.get(question.item) ?? 0) + 1)
-    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1)
-  }
-
-  const pickWeightedQuestion = (pool: Question[]) => {
-    const weighted = pool.map((question) => ({ question, weight: categoryWeight(questionCategory(question)) }))
-    const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
-    let cursor = Math.random() * totalWeight
-    for (const entry of weighted) {
-      cursor -= entry.weight
-      if (cursor <= 0) return entry.question
+    const canUseQuestion = (question: Question, relaxItemLimit = false, relaxCategoryLimit = false, relaxPromptLimit = false) => {
+      if (selectedIds.has(question.id)) return false
+      const category = questionCategory(question)
+      const color = question.color || '無色'
+      if (!relaxPromptLimit && usedPromptKeys.has(promptKey(question))) return false
+      if (!relaxPromptLimit && poolPromptItems.has(question.item)) return false
+      if (!relaxPromptLimit && poolPromptColors.has(color)) return false
+      if (!relaxPromptLimit && usedPromptItems.has(question.item)) return false
+      if (!relaxPromptLimit && usedPromptColors.has(color)) return false
+      if (!relaxItemLimit && (itemCounts.get(question.item) ?? 0) >= maxSameItem) return false
+      if (!relaxCategoryLimit && (categoryCounts.get(category) ?? 0) >= maxSameCategory) return false
+      return true
     }
-    return weighted.at(-1)?.question
+
+    const addQuestion = (question: Question) => {
+      const category = questionCategory(question)
+      result.push(question)
+      selectedIds.add(question.id)
+      usedPromptKeys.add(promptKey(question))
+      usedPromptItems.add(question.item)
+      usedPromptColors.add(question.color || '無色')
+      poolPromptItems.add(question.item)
+      poolPromptColors.add(question.color || '無色')
+      itemCounts.set(question.item, (itemCounts.get(question.item) ?? 0) + 1)
+      categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1)
+    }
+
+    const pickWeightedQuestion = (candidates: Question[]) => {
+      const weighted = candidates.map((question) => ({ question, weight: categoryWeight(questionCategory(question)) }))
+      const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
+      let cursor = Math.random() * totalWeight
+      for (const entry of weighted) {
+        cursor -= entry.weight
+        if (cursor <= 0) return entry.question
+      }
+      return weighted.at(-1)?.question
+    }
+
+    for (const category of priorityCategories) {
+      if (result.length >= targetCount) break
+      const candidates = shuffle(poolQuestions.filter((question) => questionCategory(question) === category && canUseQuestion(question)))
+      const question = pickWeightedQuestion(candidates)
+      if (question) addQuestion(question)
+    }
+
+    while (result.length < targetCount) {
+      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question)))
+      const question = pickWeightedQuestion(candidates)
+      if (!question) break
+      addQuestion(question)
+    }
+
+    while (result.length < targetCount) {
+      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question, false, false, true)))
+      const question = pickWeightedQuestion(candidates)
+      if (!question) break
+      addQuestion(question)
+    }
+
+    while (result.length < targetCount) {
+      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question, true, true, true)))
+      const question = pickWeightedQuestion(candidates)
+      if (!question) break
+      addQuestion(question)
+    }
+
+    return shuffle(result).slice(0, targetCount)
   }
 
-  // First keep a few special contexts represented, but shuffle the categories so one fixed group won't always win.
-  const priorityCategories = shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture'])
-  for (const category of priorityCategories) {
-    if (result.length >= 6) break
-    const pool = shuffle(allQuestions.filter((question) => questionCategory(question) === category && canUseQuestion(question)))
-    const question = pickWeightedQuestion(pool)
-    if (question) addQuestion(question)
-  }
+  const pool1Questions = allQuestions.filter((question) => question.pool === 1)
+  const pool2Questions = allQuestions.filter((question) => question.pool === 2)
+  const pool1 = pickQuestions(pool1Questions.length ? pool1Questions : allQuestions, 5, shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture']))
+  const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : allQuestions, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style'])])
 
-  while (result.length < 10) {
-    const pool = shuffle(allQuestions.filter((question) => canUseQuestion(question)))
-    const question = pickWeightedQuestion(pool)
-    if (!question) break
-    addQuestion(question)
-  }
-
-  while (result.length < 10) {
-    const pool = shuffle(allQuestions.filter((question) => canUseQuestion(question, true, true)))
-    const question = pickWeightedQuestion(pool)
-    if (!question) break
-    addQuestion(question)
-  }
-
-  return shuffle(result).slice(0, 10)
+  return [...pool1, ...pool2]
 }
 function startGame() {
   playSound('next')
@@ -559,6 +593,32 @@ function chooseCard(id: string, slot: Slot) {
 function focusClosetSlot(tab: ClosetTab) {
   playSound('click')
   activeTab.value = tab
+}
+
+function handleClosetTabKeydown(event: KeyboardEvent, tabId: ClosetTab) {
+  const tabIndex = tabs.findIndex((tab) => tab.id === tabId)
+  if (tabIndex === -1) return
+
+  let nextIndex = tabIndex
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    nextIndex = (tabIndex + 1) % tabs.length
+  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    nextIndex = (tabIndex - 1 + tabs.length) % tabs.length
+  } else if (event.key === 'Home') {
+    nextIndex = 0
+  } else if (event.key === 'End') {
+    nextIndex = tabs.length - 1
+  } else {
+    return
+  }
+
+  event.preventDefault()
+  const nextTab = tabs[nextIndex]
+  activeTab.value = nextTab.id
+  playSound('click')
+  nextTick(() => {
+    document.getElementById(`closet-tab-${nextTab.id}`)?.focus()
+  })
 }
 
 function clearSlot(slot: Slot) {
@@ -1225,6 +1285,7 @@ onBeforeUnmount(() => {
     </section>
 
     <section v-else-if="screen === 'game'" class="game-screen" :style="gameBackgroundStyle">
+      <h1 class="sr-only">穿搭小達人遊戲關卡</h1>
       <header class="toolbar">
         <div class="lobby-toolbar game-top-actions" aria-label="遊戲工具列">
           <button class="lobby-back-button" type="button" aria-label="返回列表" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="" aria-hidden="true">返回列表</button>
@@ -1234,7 +1295,7 @@ onBeforeUnmount(() => {
       </header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-pressed="isSlotEquipped(control.slot)" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
-      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><div class="clothing-grid" role="tabpanel" :id="`closet-panel-${activeTab}`" :aria-labelledby="`closet-tab-${activeTab}`"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" :aria-pressed="selected[card.slot] === card.id" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" :aria-pressed="selected[card.slot] === card.id" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
@@ -1348,15 +1409,15 @@ onBeforeUnmount(() => {
       </article>
     </section>
 
-    <section v-if="dictionaryOpen" class="dictionary-overlay" role="dialog" aria-modal="true" aria-label="穿搭小詞典" @click.self="closeDictionary">
+    <section v-if="dictionaryOpen" class="dictionary-overlay" role="dialog" aria-modal="true" aria-labelledby="dictionary-title" @click.self="closeDictionary">
       <article ref="dictionaryDialogRef" class="dictionary-modal" tabindex="-1">
         <header>
-          <div><h2>穿搭小詞典</h2></div>
+          <div><h2 id="dictionary-title">穿搭小詞典</h2></div>
           <div class="dictionary-header-actions">
             <select v-model="selectedDialect" aria-label="選擇客語腔調">
               <option v-for="dialect in dialects" :key="dialect.id" :value="dialect.id">{{ dialect.label }}</option>
             </select>
-            <button type="button" aria-label="關閉詞典" @click="closeDictionary">×</button>
+            <button type="button" aria-label="關閉穿搭小詞典" @click="closeDictionary">×</button>
           </div>
         </header>
         <div class="dictionary-search"><span>⌕</span><input v-model="dictionarySearch" aria-label="搜尋客語名詞、華語翻譯或拼音" placeholder="搜尋客語名詞、華語翻譯或拼音…"><button v-if="dictionarySearch" type="button" @click="resetDictionarySearch">重設</button></div>
@@ -1404,6 +1465,10 @@ onBeforeUnmount(() => {
     </div>
   </main>
 </template>
+
+
+
+
 
 
 
