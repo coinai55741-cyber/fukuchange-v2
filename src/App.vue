@@ -383,61 +383,91 @@ function resetDictionarySearch() {
 }
 
 function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
-  const groups: Record<string, Question[]> = {}
-  for (const q of allQuestions) {
-    if (!groups[q.item]) groups[q.item] = []
-    groups[q.item].push(q)
+  const questionCategory = (question: Question) => {
+    const tags = question.tags ?? []
+    const hasCold = tags.includes('冷')
+    const hasRain = tags.includes('下雨') || tags.includes('rain')
+    const hasWater = tags.includes('水上') || tags.includes('water')
+    if (hasCold && hasRain) return 'cold-rain'
+    if (hasCold) return 'cold'
+    if (hasRain) return 'rain'
+    if (hasWater) return 'water'
+    if (tags.includes('賞螢') || tags.includes('暗')) return 'night'
+    if (tags.includes('藍衫') || tags.includes('客庄') || tags.includes('桐花') || tags.includes('杭菊')) return 'culture'
+    if (tags.includes('喜慶')) return 'event'
+    if (tags.includes('正式')) return 'formal'
+    if (tags.includes('運動')) return 'sport'
+    if (tags.includes('亮') || tags.includes('活潑')) return 'style'
+    if (tags.includes('日常')) return 'daily'
+    return 'other'
   }
 
-  // Score a question based on weather interest/rarity (3 = cold/winter, 2 = rain/water, 1 = normal)
-  const getQuestionScore = (q: Question) => {
-    if (q.tags?.includes('冷')) return 3
-    if (q.tags?.includes('下雨') || q.tags?.includes('rain') || q.tags?.includes('水上')) return 2
+  const categoryWeight = (category: string) => {
+    if (category === 'cold-rain') return 2.4
+    if (category === 'cold' || category === 'rain' || category === 'water') return 2
+    if (category === 'night' || category === 'culture') return 1.6
     return 1
   }
 
-  const sortedItems = Object.keys(groups).sort((a, b) => {
-    const maxA = Math.max(...(groups[a] ?? []).map(getQuestionScore))
-    const maxB = Math.max(...(groups[b] ?? []).map(getQuestionScore))
-    return maxB - maxA
-  })
-
   const result: Question[] = []
+  const selectedIds = new Set<string>()
+  const itemCounts = new Map<string, number>()
+  const categoryCounts = new Map<string, number>()
+  const maxSameItem = 2
+  const maxSameCategory = 2
 
-  // Prioritize picking questions with special weather for each item group
-  for (const item of sortedItems) {
-    if (result.length >= 10) break
-    const qs = groups[item]
-    if (qs && qs.length > 0) {
-      // Sort questions within the group desc, and shuffle within the same score group
-      const scoredQs = qs.map(q => ({ q, score: getQuestionScore(q) }))
-      scoredQs.sort((x, y) => {
-        if (y.score !== x.score) return y.score - x.score
-        return Math.random() - 0.5
-      })
-      const bestQ = scoredQs[0]?.q
-      if (bestQ) result.push(bestQ)
-    }
+  const canUseQuestion = (question: Question, relaxItemLimit = false, relaxCategoryLimit = false) => {
+    if (selectedIds.has(question.id)) return false
+    const category = questionCategory(question)
+    if (!relaxItemLimit && (itemCounts.get(question.item) ?? 0) >= maxSameItem) return false
+    if (!relaxCategoryLimit && (categoryCounts.get(category) ?? 0) >= maxSameCategory) return false
+    return true
   }
 
-  // Fallback: If we still need more questions to reach 10, pick from remaining pool prioritizing special weather
-  if (result.length < 10) {
-    const remainingCount = 10 - result.length
-    const alreadySelectedIds = new Set(result.map(q => q.id))
-    const pool = allQuestions.filter(q => !alreadySelectedIds.has(q.id))
-    const scoredPool = pool.map(q => ({ q, score: getQuestionScore(q) }))
-    scoredPool.sort((x, y) => {
-      if (y.score !== x.score) return y.score - x.score
-      return Math.random() - 0.5
-    })
-    for (let i = 0; i < Math.min(remainingCount, scoredPool.length); i++) {
-      result.push(scoredPool[i].q)
+  const addQuestion = (question: Question) => {
+    const category = questionCategory(question)
+    result.push(question)
+    selectedIds.add(question.id)
+    itemCounts.set(question.item, (itemCounts.get(question.item) ?? 0) + 1)
+    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1)
+  }
+
+  const pickWeightedQuestion = (pool: Question[]) => {
+    const weighted = pool.map((question) => ({ question, weight: categoryWeight(questionCategory(question)) }))
+    const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
+    let cursor = Math.random() * totalWeight
+    for (const entry of weighted) {
+      cursor -= entry.weight
+      if (cursor <= 0) return entry.question
     }
+    return weighted.at(-1)?.question
+  }
+
+  // First keep a few special contexts represented, but shuffle the categories so one fixed group won't always win.
+  const priorityCategories = shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture'])
+  for (const category of priorityCategories) {
+    if (result.length >= 6) break
+    const pool = shuffle(allQuestions.filter((question) => questionCategory(question) === category && canUseQuestion(question)))
+    const question = pickWeightedQuestion(pool)
+    if (question) addQuestion(question)
+  }
+
+  while (result.length < 10) {
+    const pool = shuffle(allQuestions.filter((question) => canUseQuestion(question)))
+    const question = pickWeightedQuestion(pool)
+    if (!question) break
+    addQuestion(question)
+  }
+
+  while (result.length < 10) {
+    const pool = shuffle(allQuestions.filter((question) => canUseQuestion(question, true, true)))
+    const question = pickWeightedQuestion(pool)
+    if (!question) break
+    addQuestion(question)
   }
 
   return shuffle(result).slice(0, 10)
 }
-
 function startGame() {
   playSound('next')
   const nextGameSet = selectTenDiverseQuestions(questions)
@@ -1374,6 +1404,8 @@ onBeforeUnmount(() => {
     </div>
   </main>
 </template>
+
+
 
 
 
