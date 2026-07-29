@@ -2771,3 +2771,263 @@
 }
 
 
+
+/* AA accessibility overrides */
+:where(button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 3px;
+}
+:where(.primary, .secondary, .text-button, .lobby-back-button, .sound-toggle-btn, .dictionary-launch, .clothing-card, .body-controls button, .dialects button, .closet-card nav button, .rank-link):focus-visible {
+  box-shadow: 0 0 0 4px #fffdf8, 0 0 0 7px #1d4ed8;
+}
+.progress {
+  background: #8f5c24;
+  color: #fff;
+  font-weight: 900;
+}
+.mission-card h2 {
+  color: #236f8f;
+}
+.question-badge {
+  color: #334155;
+}
+.body-controls button {
+  color: #1f6f93;
+}
+.body-controls button.equipped {
+  background: #236f8f;
+  color: #fff;
+}
+.closet-card nav button.active {
+  color: #236f8f;
+  border-color: #236f8f;
+}
+.closet-footer strong {
+  background: #236f8f;
+  color: #fff;
+}
+.dictionary-header-actions select:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px #fffdf8;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+  .dictionary-launch {
+    animation: none !important;
+  }
+}
+
+/* Rank accessibility helpers */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.lobby-rank-place,
+.result-rank-place,
+.lobby-rank-modal-place {
+  border-radius: 8px;
+}
+.lobby-rank-place:focus-visible,
+.result-rank-place:focus-visible,
+.lobby-rank-modal-place:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px #fffdf8;
+}
+
+/* Local button tooltips */
+.dictionary-launch-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 2;
+  width: max-content;
+  max-width: 180px;
+  padding: .38rem .65rem;
+  border-radius: 10px;
+  color: #4c3820;
+  background: #fff7cf;
+  border: 2px solid #d7a736;
+  box-shadow: 0 4px 12px #5b3b1833;
+  font-size: .85rem;
+  font-weight: 900;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.dictionary-launch-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 10px;
+  height: 10px;
+  background: #fff7cf;
+  border-right: 2px solid #d7a736;
+  border-bottom: 2px solid #d7a736;
+  transform: translate(-50%, -5px) rotate(45deg);
+}
+.dictionary-image-launch:hover .dictionary-launch-tooltip,
+.dictionary-image-launch:focus-visible .dictionary-launch-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictionary-launch-tooltip {
+    transition: none !important;
+  }
+}
+
+/* Sentence review outfit snapshot layout */
+.sentence-review-layout {
+  display: grid;
+  grid-template-columns: minmax(120px, 155px) 1fr;
+  gap: 18px;
+  align-items: stretch;
+  margin-top: 14px;
+}
+.sentence-outfit-snapshot {
+  min-height: 252px;
+  margin: 0;
+  padding: 10px 8px;
+  display: grid;
+  place-items: center;
+  border-right: 2px solid rgba(252, 165, 165, .5);
+  border-radius: 14px 0 0 14px;
+  background: linear-gradient(180deg, rgba(255, 247, 237, .82), rgba(255, 255, 255, .72));
+}
+.sentence-outfit-snapshot img {
+  display: block;
+  width: 100%;
+  max-width: 142px;
+  max-height: 260px;
+  object-fit: contain;
+}
+.sentence-outfit-snapshot.empty {
+  color: #8a6a42;
+  font-size: .9rem;
+  font-weight: 900;
+  text-align: center;
+}
+.sentence-outfit-snapshot figcaption {
+  padding: .8rem;
+  border-radius: 12px;
+  background: rgba(255, 247, 237, .9);
+}
+.sentence-review-detail {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.sentence-question-block {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .72);
+}
+.sentence-question-block h3 {
+  margin: 0 0 8px;
+  color: #236f8f;
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  font-weight: 900;
+}
+.sentence-question-badge {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 10px;
+  padding: .38rem .7rem;
+  border-radius: 12px;
+  color: #4c3820;
+  background: #fff1a8;
+  border: 1px solid #e7c65d;
+  font-size: clamp(.98rem, 1.6vw, 1.18rem);
+  font-weight: 900;
+  line-height: 1.45;
+}
+.sentence-question-description {
+  margin: 0;
+  color: #56463d;
+  font-size: clamp(.98rem, 1.55vw, 1.12rem);
+  font-weight: 800;
+  line-height: 1.7;
+}
+@media (max-width: 760px) {
+  .sentence-review-layout {
+    grid-template-columns: 1fr;
+  }
+  .sentence-outfit-snapshot {
+    min-height: 180px;
+    border-right: 0;
+    border-bottom: 2px solid rgba(252, 165, 165, .5);
+    border-radius: 14px 14px 0 0;
+  }
+  .sentence-outfit-snapshot img {
+    max-height: 220px;
+  }
+}
+
+/* Result width and skipped review cleanup */
+.result-panel {
+  width: min(580px, calc(100vw - 48px));
+}
+.sentence-outfit-snapshot {
+  border-right: 0 !important;
+  border-radius: 14px !important;
+}
+.sentence-review-layout.skipped {
+  grid-template-columns: 1fr;
+}
+.sentence-review-layout.skipped .sentence-review-detail {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .sentence-outfit-snapshot {
+    border-bottom: 0 !important;
+  }
+}
+
+/* Wider sentence review cards */
+.sentence-review-card {
+  width: 100% !important;
+  max-width: none !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+.sentence-review-list {
+  width: 100% !important;
+  max-width: none !important;
+}
+.sentence-review-item {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.sentence-review-layout:not(.skipped) {
+  grid-template-columns: minmax(170px, 190px) minmax(0, 1fr) !important;
+  gap: 20px !important;
+}
+.sentence-outfit-snapshot img {
+  max-width: 174px !important;
+  max-height: 286px !important;
+}
+@media (max-width: 760px) {
+  .sentence-review-layout:not(.skipped) {
+    grid-template-columns: 1fr !important;
+  }
+}

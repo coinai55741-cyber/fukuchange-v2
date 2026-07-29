@@ -79,6 +79,19 @@ const selectableAttachments = [
 let app: Application | null = null
 let spine: Spine | null = null
 
+function capture() {
+  if (!app) return ''
+  try {
+    app.render()
+    return app.canvas.toDataURL('image/png')
+  } catch (error) {
+    console.warn('Unable to capture Spine avatar:', error)
+    return ''
+  }
+}
+
+defineExpose({ capture })
+
 function publicAssetUrl(file: string) {
   return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}`
 }
@@ -187,7 +200,7 @@ onMounted(async () => {
   await Assets.load([spineAssets.skeleton, spineAssets.atlas])
 
   app = new Application()
-  await app.init({ width: 360, height: 570, backgroundAlpha: 0, antialias: true, preference: 'webgl' })
+  await app.init({ width: 360, height: 570, backgroundAlpha: 0, antialias: true, preference: 'webgl', preserveDrawingBuffer: true })
   host.value.appendChild(app.canvas)
 
   spine = Spine.from({ skeleton: spineAssets.skeleton, atlas: spineAssets.atlas })
@@ -209,7 +222,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="host" class="spine-avatar" aria-label="阿梅角色換裝預覽"></div>
+  <div ref="host" class="spine-avatar" role="img" aria-label="阿梅角色換裝預覽"></div>
 </template>
 
 <style scoped>
@@ -217,3 +230,5 @@ onBeforeUnmount(() => {
 .spine-avatar :deep(canvas) { display: block; width: 360px; height: 570px; }
 
 </style>
+
+
