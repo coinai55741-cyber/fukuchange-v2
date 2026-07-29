@@ -165,6 +165,11 @@ const dyeColors: { name: string; key: Clothing['colorKey'] }[] = [
   { name: '紅色花圖案', key: 'red_flower_pattern' },
 ]
 
+const rainBootDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
+  { name: '烏色', key: 'black' },
+  ...dyeColors,
+]
+
 function makeDyeVariants(prefix: string, name: string, slot: Slot, tab: ClosetTab, image: string, colors = dyeColors) {
   return colors.map((color) => makeClothing(`${prefix}-${color.key}`, name, color.name, color.key, slot, tab, image))
 }
@@ -180,7 +185,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('shorts', '短褲', 'pants', 'bottoms', 'shorts_B.png'),
   ...makeDyeVariants('skirt', '裙', 'pants', 'bottoms', 'skirt_B_over.png'),
   ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png'),
-  ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png'),
+  ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', rainBootDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png'),
   ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),

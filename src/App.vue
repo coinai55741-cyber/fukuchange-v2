@@ -50,6 +50,7 @@ const dictionaryOpen = ref(false)
 const dictionarySearch = ref('')
 const lobbyLeaderboardOpen = ref(false)
 const isMobileViewport = ref(false)
+const closetAnnouncement = ref('')
 let mobileMediaQuery: MediaQueryList | null = null
 const dictionaryDialogRef = ref<HTMLElement | null>(null)
 const feedbackDialogRef = ref<HTMLElement | null>(null)
@@ -313,6 +314,15 @@ function preferredDistractorsForQuestion(question: Question | undefined, tab: Cl
   return []
 }
 
+function canShowClosetDistractor(question: Question | undefined, item: Clothing) {
+  const tags = question?.tags ?? []
+  const isCleaning = tags.includes('打掃') || question?.context.includes('大掃除') || question?.context.includes('打掃')
+  if (!isCleaning) return true
+  if (item.id === 'pants-white' || item.id.startsWith('skirt-')) return false
+  if (item.id === 'neck-white' || item.id.startsWith('scarf-')) return false
+  return true
+}
+
 // 每個分頁最多顯示三件：題目正解必定保留，其餘從同分頁的全部物件隨機抽取。
 // 因此每一個物件都有機會成為誘答，但不會讓正解消失。
 function prepareCloset(question: Question | undefined) {
@@ -326,7 +336,7 @@ function prepareCloset(question: Question | undefined) {
     const preferredIds = new Set(preferred.map((item) => item.id))
     const distractors = [
       ...preferred,
-      ...shuffle(inTab.filter((item) => !requiredIds.has(item.id) && !preferredIds.has(item.id)))
+      ...shuffle(inTab.filter((item) => !requiredIds.has(item.id) && !preferredIds.has(item.id) && canShowClosetDistractor(question, item)))
     ]
     next[tab.id] = shuffle([...guaranteed, ...distractors.slice(0, Math.max(0, 3 - guaranteed.length))]).map((item) => item.id)
   }
@@ -411,14 +421,14 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     return 1
   }
 
-  const usedPromptKeys = new Set<string>()
-  const usedPromptItems = new Set<string>()
-  const usedPromptColors = new Set<string>()
+  const usedScenarioKeys = new Set<string>()
   const promptKey = (question: Question) => `${question.item}::${question.color || '無色'}`
+  const scenarioKey = (question: Question) => (question.tags?.length ? [...question.tags].sort().join('|') : questionCategory(question))
 
-  const pickQuestions = (poolQuestions: Question[], targetCount: number, priorityCategories: string[]) => {
+  const pickQuestions = (poolQuestions: Question[], targetCount: number, priorityCategories: string[], avoidUsedScenarios = false, priorityStageIds: number[] = []) => {
     const result: Question[] = []
     const selectedIds = new Set<string>()
+    const poolPromptKeys = new Set<string>()
     const poolPromptItems = new Set<string>()
     const poolPromptColors = new Set<string>()
     const itemCounts = new Map<string, number>()
@@ -430,11 +440,10 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
       if (selectedIds.has(question.id)) return false
       const category = questionCategory(question)
       const color = question.color || '無色'
-      if (!relaxPromptLimit && usedPromptKeys.has(promptKey(question))) return false
+      if (avoidUsedScenarios && usedScenarioKeys.has(scenarioKey(question))) return false
+      if (!relaxPromptLimit && poolPromptKeys.has(promptKey(question))) return false
       if (!relaxPromptLimit && poolPromptItems.has(question.item)) return false
       if (!relaxPromptLimit && poolPromptColors.has(color)) return false
-      if (!relaxPromptLimit && usedPromptItems.has(question.item)) return false
-      if (!relaxPromptLimit && usedPromptColors.has(color)) return false
       if (!relaxItemLimit && (itemCounts.get(question.item) ?? 0) >= maxSameItem) return false
       if (!relaxCategoryLimit && (categoryCounts.get(category) ?? 0) >= maxSameCategory) return false
       return true
@@ -444,9 +453,8 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
       const category = questionCategory(question)
       result.push(question)
       selectedIds.add(question.id)
-      usedPromptKeys.add(promptKey(question))
-      usedPromptItems.add(question.item)
-      usedPromptColors.add(question.color || '無色')
+      usedScenarioKeys.add(scenarioKey(question))
+      poolPromptKeys.add(promptKey(question))
       poolPromptItems.add(question.item)
       poolPromptColors.add(question.color || '無色')
       itemCounts.set(question.item, (itemCounts.get(question.item) ?? 0) + 1)
@@ -464,6 +472,12 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
       return weighted.at(-1)?.question
     }
 
+    for (const stageId of priorityStageIds) {
+      if (result.length >= targetCount) break
+      const question = poolQuestions.find((entry) => entry.stageId === stageId && canUseQuestion(entry))
+      if (question) addQuestion(question)
+    }
+
     for (const category of priorityCategories) {
       if (result.length >= targetCount) break
       const candidates = shuffle(poolQuestions.filter((question) => questionCategory(question) === category && canUseQuestion(question)))
@@ -479,14 +493,7 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     }
 
     while (result.length < targetCount) {
-      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question, false, false, true)))
-      const question = pickWeightedQuestion(candidates)
-      if (!question) break
-      addQuestion(question)
-    }
-
-    while (result.length < targetCount) {
-      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question, true, true, true)))
+      const candidates = shuffle(poolQuestions.filter((question) => canUseQuestion(question, true, true, false)))
       const question = pickWeightedQuestion(candidates)
       if (!question) break
       addQuestion(question)
@@ -497,10 +504,44 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
 
   const pool1Questions = allQuestions.filter((question) => question.pool === 1)
   const pool2Questions = allQuestions.filter((question) => question.pool === 2)
-  const pool1 = pickQuestions(pool1Questions.length ? pool1Questions : allQuestions, 5, shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture']))
-  const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : allQuestions, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style'])])
+  let bestSet: Question[] = []
 
-  return [...pool1, ...pool2]
+  const fillToTenQuestions = (selectedQuestions: Question[]) => {
+    const selectedIds = new Set(selectedQuestions.map((question) => question.id))
+    const pool2Selected = selectedQuestions.filter((question) => question.pool === 2)
+    const pool2Items = new Set(pool2Selected.map((question) => question.item))
+    const pool2Colors = new Set(pool2Selected.map((question) => question.color || '無色'))
+    const finalQuestions = [...selectedQuestions]
+
+    const addFrom = (candidates: Question[]) => {
+      for (const question of candidates) {
+        if (finalQuestions.length >= 10) break
+        if (selectedIds.has(question.id)) continue
+        finalQuestions.push(question)
+        selectedIds.add(question.id)
+      }
+    }
+
+    addFrom(shuffle(pool2Questions.filter((question) => {
+      const color = question.color || '無色'
+      return !selectedIds.has(question.id) && !pool2Items.has(question.item) && !pool2Colors.has(color)
+    })))
+    addFrom(shuffle(pool2Questions.filter((question) => !selectedIds.has(question.id))))
+    addFrom(shuffle(allQuestions.filter((question) => !selectedIds.has(question.id))))
+
+    return finalQuestions.slice(0, 10)
+  }
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    usedScenarioKeys.clear()
+    const pool1 = pickQuestions(pool1Questions.length ? pool1Questions : allQuestions, 5, shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture']))
+    const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : allQuestions, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style', 'sport', 'daily'])], true, [9, 10])
+    const candidateSet = [...pool1, ...pool2]
+    if (candidateSet.length > bestSet.length) bestSet = candidateSet
+    if (candidateSet.length === 10) return candidateSet
+  }
+
+  return fillToTenQuestions(bestSet)
 }
 function startGame() {
   playSound('next')
@@ -568,6 +609,7 @@ function chooseCard(id: string, slot: Slot) {
     const next = { ...selected.value }
     delete next[slot]
     selected.value = next
+    closetAnnouncement.value = `已取消${item.color}${item.name}`
   } else {
     const next = { ...selected.value }
     
@@ -586,8 +628,14 @@ function chooseCard(id: string, slot: Slot) {
 
     next[slot] = id
     selected.value = next
+    closetAnnouncement.value = `已選取${item.color}${item.name}`
   }
   feedback.value = null
+}
+
+function clothingCardAriaLabel(card: Clothing) {
+  const isSelected = selected.value[card.slot] === card.id
+  return `${card.color}${card.name}，${isSelected ? '已選取，點擊可取消' : '未選取，點擊可穿上'}`
 }
 
 function focusClosetSlot(tab: ClosetTab) {
@@ -623,16 +671,19 @@ function handleClosetTabKeydown(event: KeyboardEvent, tabId: ClosetTab) {
 
 function clearSlot(slot: Slot) {
   playSound('click')
+  const item = clothing.find(c => c.id === selected.value[slot])
   if (!selected.value[slot]) return
   const next = { ...selected.value }
   delete next[slot]
   selected.value = next
+  if (item) closetAnnouncement.value = `已取消${item.color}${item.name}`
   feedback.value = null
 }
 
 function resetOutfit() {
   playSound('click')
   selected.value = {}
+  closetAnnouncement.value = '已重置服裝'
   feedback.value = null
 }
 
@@ -1295,7 +1346,7 @@ onBeforeUnmount(() => {
       </header>
       <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-pressed="isSlotEquipped(control.slot)" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
-      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="`${card.color} ${card.name}`" :aria-pressed="selected[card.slot] === card.id" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
