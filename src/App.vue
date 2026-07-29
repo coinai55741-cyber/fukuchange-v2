@@ -51,6 +51,7 @@ const dictionarySearch = ref('')
 const lobbyLeaderboardOpen = ref(false)
 const isMobileViewport = ref(false)
 const closetAnnouncement = ref('')
+const soundAnnouncement = ref('音效目前開啟')
 let mobileMediaQuery: MediaQueryList | null = null
 const dictionaryDialogRef = ref<HTMLElement | null>(null)
 const feedbackDialogRef = ref<HTMLElement | null>(null)
@@ -593,9 +594,11 @@ function toggleSound() {
   if (soundEnabled.value) {
     playSound('click')
     soundEnabled.value = false
+    soundAnnouncement.value = '音效已關閉'
     bgmAudio?.pause()
   } else {
     soundEnabled.value = true
+    soundAnnouncement.value = '音效已開啟'
     playSound('click')
   }
 }
@@ -666,6 +669,36 @@ function handleClosetTabKeydown(event: KeyboardEvent, tabId: ClosetTab) {
   playSound('click')
   nextTick(() => {
     document.getElementById(`closet-tab-${nextTab.id}`)?.focus()
+  })
+}
+
+function handleClothingCardKeydown(event: KeyboardEvent, cardId: string) {
+  const currentIndex = closetCards.value.findIndex((card) => card.id === cardId)
+  if (currentIndex === -1) return
+
+  const columns = isMobileViewport.value ? 3 : 3
+  let nextIndex = currentIndex
+  if (event.key === 'ArrowRight') {
+    nextIndex = Math.min(currentIndex + 1, closetCards.value.length - 1)
+  } else if (event.key === 'ArrowLeft') {
+    nextIndex = Math.max(currentIndex - 1, 0)
+  } else if (event.key === 'ArrowDown') {
+    nextIndex = Math.min(currentIndex + columns, closetCards.value.length - 1)
+  } else if (event.key === 'ArrowUp') {
+    nextIndex = Math.max(currentIndex - columns, 0)
+  } else if (event.key === 'Home') {
+    nextIndex = 0
+  } else if (event.key === 'End') {
+    nextIndex = closetCards.value.length - 1
+  } else {
+    return
+  }
+
+  event.preventDefault()
+  const nextCard = closetCards.value[nextIndex]
+  if (!nextCard || nextCard.id === cardId) return
+  nextTick(() => {
+    document.getElementById(`clothing-card-${nextCard.id}`)?.focus()
   })
 }
 
@@ -773,13 +806,39 @@ function captureOutfitSnapshot() {
   }
 }
 
-function outfitSnapshotAlt(skipped: boolean) {
-  if (skipped) return '本題已跳過，沒有穿搭快照'
-  const items = Object.values(selected.value)
-    .map(id => clothing.find(item => item.id === id))
+function outfitSnapshotAlt(skipped: boolean, index: number) {
+  if (skipped) return `第 ${index} 題已跳過，沒有穿搭快照`
+  const slotOrder: Slot[] = ['head', 'neck', 'body', 'pants', 'knee', 'shoes']
+  const actionBySlot: Partial<Record<Slot, string>> = {
+    head: '戴',
+    neck: '圍',
+    body: '著',
+    pants: '穿',
+    knee: '戴',
+    shoes: '穿'
+  }
+  const items = slotOrder
+    .map(slot => clothing.find(item => item.id === selected.value[slot]))
     .filter((item): item is Clothing => Boolean(item))
-    .map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-  return items.length ? `本題玩家穿搭快照：${items.join('、')}` : '本題玩家穿搭快照'
+    .map(item => {
+      const action = actionBySlot[item.slot] ?? '穿'
+      const colorText = item.color !== '無' ? `${item.color}个` : ''
+      return `${action}${colorText}${item.name}`
+    })
+  return items.length ? `第 ${index} 題穿搭快照：${items.join('、')}` : `第 ${index} 題沒有選擇穿搭`
+}
+
+function reviewAriaLabel(review: QuestionReview) {
+  const status = review.passed ? '已通關' : review.skipped ? '已跳過' : '未通關'
+  const resultText = review.skipped
+    ? `${review.feedbackTitle}：${review.feedbackText}`
+    : review.passed
+      ? `${review.feedbackTitle}：${review.suggestion}`
+      : `${review.feedbackTitle}：${review.feedbackText}`
+  const contextMistakes = review.targetMatched && review.contextMistakes.length
+    ? `這次主要不合適的穿戴：${review.contextMistakes.join('、')}。`
+    : ''
+  return `第 ${review.index} 題，得分 ${review.score} 分，${status}。題目：${review.hakkaBadge}。${review.description}。${resultText}。${contextMistakes}`
 }
 
 function questionDisplaySentence(question: Question, index: number) {
@@ -818,7 +877,7 @@ function recordQuestionReview(question: Question, points: number, passed: boolea
       hakkaBadge: skipped ? '本題已跳過' : reviewHakkaBadge(question, questionIndex.value),
       description: reviewDescription(question),
       outfitSnapshotImage: skipped ? '' : captureOutfitSnapshot(),
-      outfitSnapshotAlt: outfitSnapshotAlt(skipped),
+      outfitSnapshotAlt: outfitSnapshotAlt(skipped, questionIndex.value + 1),
       questionDisplay: skipped ? '本題已跳過' : questionDisplaySentence(question, questionIndex.value),
       playerSentence: skipped ? '本題已跳過' : outfitSentence(question, selected.value),
       correctSentence: correctSentence(question),
@@ -1250,6 +1309,7 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="app-shell">
+    <p class="sr-only" role="status" aria-live="polite">{{ soundAnnouncement }}</p>
     <div class="orientation-notice" role="status" aria-live="polite">
       <div>
         <p>建議將裝置旋轉為橫向後開始遊玩</p>
@@ -1258,7 +1318,7 @@ onBeforeUnmount(() => {
     <section v-if="screen === 'intro'" class="story-screen" :class="`scene-${introStep + 1}`" :style="introBackgroundStyle">
       <header class="lobby-toolbar" aria-label="前導故事工具列">
         <button class="lobby-back-button" type="button" aria-label="返回列表" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="" aria-hidden="true">返回列表</button>
-        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" :title="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
+        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
       </header>
       <div class="story-character-container">
         <img 
@@ -1277,7 +1337,7 @@ onBeforeUnmount(() => {
           <figcaption>參與婚禮穿全黑</figcaption>
         </figure>
       </div>
-      <article class="dialogue-card">
+      <article class="dialogue-card" tabindex="0" :aria-label="`${introScenes[introStep].speaker}說：${introScenes[introStep].text}`">
         <small>{{ introScenes[introStep].speaker }}</small>
         <p>{{ introScenes[introStep].text }}</p>
         <div class="story-actions"><button class="primary" type="button" @click="nextIntro">{{ introStep === 2 ? '開始挑戰' : '繼續' }} ›</button><button class="text-button" type="button" @click="goToScreen('lobby')">跳過故事情境 ››</button></div>
@@ -1287,7 +1347,7 @@ onBeforeUnmount(() => {
     <section v-else-if="screen === 'lobby'" class="lobby-screen" :style="introBackgroundStyle">
       <header class="lobby-toolbar" aria-label="首頁工具列">
         <button class="lobby-back-button" type="button" aria-label="返回列表" @click="goToScreen('intro')"><img :src="publicAssetUrl('ui/back.png')" alt="" aria-hidden="true">返回列表</button>
-        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" :title="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
+        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
         <button class="text-button lobby-rank-toggle-btn" type="button" @click="openLobbyLeaderboard"><span class="star-icon">★</span> 排行榜</button>
       </header>
       <!-- 桌機版詞典衣櫃按鈕 -->
@@ -1302,7 +1362,7 @@ onBeforeUnmount(() => {
       </button>
       <div class="lobby-card">
         <h1>歡迎來到 <span>穿搭小達人！</span></h1>
-        <section class="lobby-info" aria-label="遊戲說明">
+        <section class="lobby-info" aria-label="遊戲說明" tabindex="0">
           <p class="lobby-intro">阿梅最愛出去玩，但出門前得先學會「看場合穿衣服」！翻開阿梅的衣櫃，發揮穿搭創意，幫阿梅避開尷尬的服裝災難，變身穿搭小達人吧！</p>
           <article class="info-block purpose"><b>▼ 遊玩提示</b><p>可在左方【穿搭小詞典】學習衣著單字喔！</p></article>
           <article class="info-block rules"><b>▼ 遊玩計分</b><ol><li>總遊玩分數，一題 10 分。</li><li>根據題目選擇合適的穿著。</li><li>累計最高分及最快秒數為勝利。</li></ol></article>
@@ -1340,13 +1400,13 @@ onBeforeUnmount(() => {
       <header class="toolbar">
         <div class="lobby-toolbar game-top-actions" aria-label="遊戲工具列">
           <button class="lobby-back-button" type="button" aria-label="返回列表" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="" aria-hidden="true">返回列表</button>
-          <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" :title="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
+          <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
         </div>
         <strong>⏱ {{ formatTime(elapsedMs) }}</strong>
       </header>
-      <aside class="mission-card"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
-      <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-pressed="isSlotEquipped(control.slot)" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
-      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <aside class="mission-card" tabindex="0" :aria-label="`第 ${questionIndex + 1} 題，第 ${phase} 階段。${seasonWeatherLabel}。題目：${hakkaBadgeText}。${questionDescriptionText}`"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
+      <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
+      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :id="`clothing-card-${card.id}`" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)" @keydown="handleClothingCardKeydown($event, card.id)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
@@ -1359,10 +1419,10 @@ onBeforeUnmount(() => {
     <section v-else class="result-screen" :style="resultBackgroundStyle">
       <header class="lobby-toolbar" aria-label="結算頁工具列">
         <button class="lobby-back-button" type="button" aria-label="返回列表" @click="goToScreen('lobby')"><img :src="publicAssetUrl('ui/back.png')" alt="" aria-hidden="true">返回列表</button>
-        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" :title="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
+        <button class="text-button sound-toggle-btn" type="button" :aria-pressed="soundEnabled" :aria-label="soundToggleLabel" @click="toggleSound"><img :src="publicAssetUrl(soundEnabled ? 'ui/sound-icon.svg' : 'ui/sound-off-icon.svg')" alt="" aria-hidden="true">音效</button>
       </header>
       <article class="result-panel">
-        <section class="result-summary-card">
+        <section class="result-summary-card" tabindex="0" :aria-label="`恭喜過關。${resultComment}。總分 ${score} 分，花費時間 ${formatTime(elapsedMs)}。`">
           <h1>恭喜過關！</h1>
           <p class="result-comment">{{ resultComment }}</p>
           <div class="result-avatar-placeholder" aria-hidden="true">
@@ -1383,7 +1443,7 @@ onBeforeUnmount(() => {
             <button class="primary result-replay" type="button" @click="replay">重玩一次</button>
           </div>
         </section>
-        <section class="result-ranking-card">
+        <section class="result-ranking-card" tabindex="0" aria-label="排行榜">
           <h2>排行榜</h2>
           <div class="result-rank-head"><span>排名</span><span>學員</span><span>分數</span><span>計時</span></div>
           <ol class="result-rank-list">
@@ -1416,29 +1476,30 @@ onBeforeUnmount(() => {
             </ol>
           </aside>
         </section>
-        <section class="sentence-review-card">
-          <h2>穿搭造句檢視</h2>
+        <section class="sentence-review-card" aria-labelledby="sentence-review-title">
+          <h2 id="sentence-review-title" tabindex="0" role="heading" aria-level="2">穿搭造句檢視</h2>
           <div class="sentence-review-list">
-            <article v-for="review in questionReviews" :key="review.id" class="sentence-review-item" :class="{ passed: review.passed, failed: !review.passed }">
+            <article v-for="review in questionReviews" :key="review.id" class="sentence-review-item" :class="{ passed: review.passed, failed: !review.passed }" tabindex="0" role="group" :aria-describedby="`review-summary-${review.id}`">
+              <p :id="`review-summary-${review.id}`" class="sr-only">{{ reviewAriaLabel(review) }}</p>
               <header>
-                <b>第{{ review.index }}題</b>
-                <div class="sentence-review-badges">
+                <h3 :id="`review-title-${review.id}`">第{{ review.index }}題</h3>
+                <div class="sentence-review-badges" :aria-label="`得分 ${review.score} 分，${review.passed ? '已通關' : review.skipped ? '已跳過' : '未通關'}`">
                   <span>得分：{{ review.score }} 分</span>
                   <em>{{ review.passed ? '✓ 已通關' : review.skipped ? '— 已跳過' : '✕ 未通關' }}</em>
                 </div>
               </header>
               <div class="sentence-review-layout" :class="{ skipped: review.skipped }">
-                <figure v-if="!review.skipped" class="sentence-outfit-snapshot" :class="{ empty: !review.outfitSnapshotImage }">
+                <figure v-if="!review.skipped" class="sentence-outfit-snapshot" :class="{ empty: !review.outfitSnapshotImage }" aria-label="題目與穿搭檢視">
                   <img v-if="review.outfitSnapshotImage" :src="review.outfitSnapshotImage" :alt="review.outfitSnapshotAlt">
                   <figcaption v-else>{{ review.skipped ? '未留下穿搭快照' : '快照擷取失敗' }}</figcaption>
                 </figure>
-                <div class="sentence-review-detail">
-                  <div class="sentence-question-block">
-                    <h3>{{ review.themeTitle }}</h3>
+                <div class="sentence-review-detail" aria-label="答題結果與評語">
+                  <section class="sentence-question-block" aria-label="題目">
+                    <h4>{{ review.themeTitle }}</h4>
                     <p class="sentence-question-badge">{{ review.hakkaBadge }}</p>
                     <p class="sentence-question-description">{{ review.description }}</p>
-                  </div>
-                  <div v-if="!review.passed && !review.skipped" class="sentence-hint">
+                  </section>
+                  <section v-if="!review.passed && !review.skipped" class="sentence-hint" aria-label="不符合要求">
                     <template v-if="!review.skipped">
                       <b>{{ review.feedbackTitle }}</b>
                       <p>{{ review.feedbackText }}</p>
@@ -1447,11 +1508,11 @@ onBeforeUnmount(() => {
                       <small>這次主要不合適的穿戴：</small>
                       <p>{{ review.contextMistakes.join('、') }}</p>
                     </div>
-                  </div>
-                  <div v-if="review.passed && !review.skipped" class="sentence-hint success">
+                  </section>
+                  <section v-if="review.passed && !review.skipped" class="sentence-hint success" aria-label="答題結果">
                     <b>{{ review.feedbackTitle }}</b>
                     <p>{{ review.suggestion }}</p>
-                  </div>
+                  </section>
                 </div>
               </div>
             </article>
