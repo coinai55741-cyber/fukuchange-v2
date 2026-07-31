@@ -1203,7 +1203,7 @@ function submitOutfit() {
     occasions: baseOccasions,
     colorThemes: question.tags?.filter(t => ['桐花', '杭菊', '客庄', '打掃', '活潑'].includes(t)) || [],
     allowedVerbs: question.verb ? [question.verb] : [],
-    allowedColors: question.allowColors?.length ? question.allowColors : splitQuestionValues(question.color),
+    allowedColors: question.allowColors?.length ? question.allowColors : (question.colorOptions?.length ? question.colorOptions : splitQuestionValues(question.color)),
     allowedItems: splitQuestionValues(question.item),
     denyColors: question.denyColors ?? [],
     denyColorFeedbackKey: question.denyColorFeedbackKey || '',
