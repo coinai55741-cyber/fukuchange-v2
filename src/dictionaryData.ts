@@ -130,7 +130,7 @@ export function getHakkaSentenceComponents(
   let colorText = ''
   if (color) {
     const isFlower = color === '紅色花圖案' || color === '紅色花布'
-    const colorEntry = items.find(i => i.translation === color || i.name === color || i.id === 'red_flower_pattern')
+    const colorEntry = items.find(i => i.translation === color || i.name === color || (isFlower && i.id === 'red_flower_pattern'))
 
     if (isFlower) {
       if (isPinyinQuestion && pinyinField === 'color') {
