@@ -19,7 +19,7 @@
 "cold_with_summer_clothing","不符合要求","冷風吹來～阿梅在瑟瑟發抖！你雖然符合題目要求，但是冬天穿短袖、短褲等衣物會著涼喔！快幫阿梅換成防寒的衣物吧！","冬天建議改穿羽絨衫等其他保暖衣物。","context_wrong","winter_cold","too_cold"
 "hakka_shirt_color_conflict","顏色不符","「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。","藍衫請直接穿著，不需要另外指定顏色。","target_wrong","hakka","color_conflict"
 "hot_with_warm_item","不符合要求","大熱天穿「{item}」會太熱，阿梅汗流浹背！","請改穿短衫、短褲或其他清爽衣物。","context_wrong","summer_hot","too_warm_item"
-"festive_too_many_dark_colors","不符合要求","新年去親戚家拜年的情境，出現：黑色或白色系穿搭比例過高，在傳統喜慶場合較為不妥。","請保留喜氣或明亮色系，避免整體穿搭太暗或太素。","context_wrong","festive","too_many_dark_colors"
+"festive_too_many_dark_colors","不符合要求","新年去親戚家拜年的情境，黑色或白色系穿搭比例過高，在傳統喜慶場合較為不妥。","請保留喜氣或明亮色系，避免整體穿搭太暗或太素。","context_wrong","festive","too_many_dark_colors"
 "wedding_all_white","不符合要求","「哇～全白是新娘子的專屬顏色喔！我們換個顏色，不要搶了新娘的風采～」","請避免全白穿搭，換件彩色或明亮色彩服飾。","context_wrong","festive","wedding_all_white"
 "wedding_all_black","不符合要求","「喜宴是開心的場合，穿得太黑在傳統習俗裡比較不吉利，換件活潑一點的衣服吧！」","喜慶場合請避開全黑穿搭，改穿亮色或花布款式。","context_wrong","festive","wedding_all_black"
 "limited_color_over_max","不符合要求","「{color}」出現 {count} 件，超過此題最多 {max} 件的限制。","請減少該顏色的穿搭比例。","context_wrong","color","limited_color_over_max"

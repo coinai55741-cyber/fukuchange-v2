@@ -1326,11 +1326,13 @@ function submitOutfit() {
     contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～阿梅在瑟瑟發抖！你雖然符合題目要求，但是冬天穿短袖、短褲等衣物會著涼喔！快幫阿梅換成防寒的衣物吧！')
   }
 
-  // Special wedding banquet rules for all-white / all-black outfits
-  const isWeddingBanquet = question.context.includes('婚宴') || question.context.includes('婚禮') || currentLevel.occasions.includes('喜慶')
+  // Special wedding banquet rules for all-white / all-black outfits and dark colors
+  const isWeddingBanquet = question.context.includes('婚宴') || question.context.includes('婚禮') || currentLevel.occasions.includes('喜慶') || question.context.includes('拜年')
   if (isContextMatch && isWeddingBanquet && equippedItems.length > 0) {
     const isAllWhite = equippedItems.every(i => isSameColor(i.color, '白色'))
     const isAllBlack = equippedItems.every(i => isSameColor(i.color, '烏色'))
+    const darkItems = equippedItems.filter(i => isSameColor(i.color, '烏色') || isSameColor(i.color, '白色'))
+
     if (isAllWhite) {
       isContextMatch = false
       contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
@@ -1339,6 +1341,10 @@ function submitOutfit() {
       isContextMatch = false
       contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
       contextReason = feedbackMessage('wedding_all_black', '「喜宴是開心的場合，穿得太黑在傳統習俗裡比較不吉利，換件活潑一點的衣服吧！」')
+    } else if (darkItems.length > 1) {
+      isContextMatch = false
+      contextMistakes = darkItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage('festive_too_many_dark_colors', '黑色或白色系穿搭比例過高，在傳統喜慶場合較為不妥。')
     }
   }
 
