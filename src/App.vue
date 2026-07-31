@@ -548,7 +548,7 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     const poolPromptTokens = new Set<string>()
     const itemCounts = new Map<string, number>()
     const categoryCounts = new Map<string, number>()
-    const maxSameItem = 2
+    const maxSameItem = avoidUsedScenarios ? 2 : 1
     const maxSameCategory = 2
 
     const canUseQuestion = (question: Question, relaxItemLimit = false, relaxCategoryLimit = false, relaxPromptLimit = false) => {
@@ -619,6 +619,23 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
   const pool2Questions = questionPool.filter((question) => question.pool === 2)
   let bestSet: Question[] = []
 
+  const ensureNoConsecutiveSameItem = (list: Question[]): Question[] => {
+    const arr = [...list]
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].item === arr[i - 1].item) {
+        const j = arr.findIndex((q, idx) =>
+          idx > i && q.item !== arr[i - 1].item && (idx === arr.length - 1 || q.item !== arr[i + 1]?.item)
+        )
+        if (j !== -1) {
+          const temp = arr[i]
+          arr[i] = arr[j]
+          arr[j] = temp
+        }
+      }
+    }
+    return arr
+  }
+
   const fillToTenQuestions = (selectedQuestions: Question[]) => {
     const selectedIds = new Set(selectedQuestions.map((question) => question.id))
     const pool2Selected = selectedQuestions.filter((question) => question.pool === 2)
@@ -644,7 +661,7 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     addFrom(shuffle(pool2Questions.filter((question) => !selectedIds.has(question.id))))
     addFrom(shuffle(questionPool.filter((question) => !selectedIds.has(question.id))))
 
-    return finalQuestions.slice(0, 10)
+    return ensureNoConsecutiveSameItem(finalQuestions.slice(0, 10))
   }
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -653,7 +670,7 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : questionPool, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style', 'sport', 'daily'])], true, [9, 10])
     const candidateSet = [...pool1, ...pool2]
     if (candidateSet.length > bestSet.length) bestSet = candidateSet
-    if (candidateSet.length === 10) return candidateSet
+    if (candidateSet.length === 10) return ensureNoConsecutiveSameItem(candidateSet)
   }
 
   return fillToTenQuestions(bestSet)
