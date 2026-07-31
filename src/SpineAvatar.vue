@@ -171,44 +171,60 @@ function adjustDrawOrder() {
 function applyOutfit() {
   if (!spine) return
 
-  spine.skeleton.setSlotsToSetupPose()
-  for (const slotName of selectableAttachments) {
-    spine.skeleton.findSlot(slotName)?.setAttachment(null)
+  try {
+    spine.skeleton.setSlotsToSetupPose()
+    for (const slotName of selectableAttachments) {
+      spine.skeleton.findSlot(slotName)?.setAttachment(null)
+    }
+
+    const itemIds = Object.values(props.outfit).filter((itemId): itemId is string => Boolean(itemId))
+    const usesSwimCap = itemIds.some((itemId) => itemId === 'head-swim-cap' || itemId === 'head-swim-cap-yellow' || itemId.startsWith('swim-cap-'))
+
+    spine.skeleton.setAttachment('body_base', 'body_base')
+    if (!usesSwimCap) spine.skeleton.setAttachment('head_normal', 'head_normal')
+
+    for (const itemId of itemIds) {
+      const attachments = attachmentsForItem(itemId)
+      for (const attachment of attachments) {
+        if (attachment) spine.skeleton.setAttachment(attachment, attachment)
+      }
+      tintItem(itemId)
+    }
+
+    adjustDrawOrder()
+    spine.skeleton.updateWorldTransform(Physics.none)
+  } catch (error) {
+    console.error('Error applying outfit to Spine avatar:', error)
   }
-
-  const itemIds = Object.values(props.outfit).filter((itemId): itemId is string => Boolean(itemId))
-  const usesSwimCap = itemIds.some((itemId) => itemId === 'head-swim-cap' || itemId === 'head-swim-cap-yellow' || itemId.startsWith('swim-cap-'))
-
-  spine.skeleton.setAttachment('body_base', 'body_base')
-  if (!usesSwimCap) spine.skeleton.setAttachment('head_normal', 'head_normal')
-
-  for (const itemId of itemIds) {
-    for (const attachment of attachmentsForItem(itemId)) spine.skeleton.setAttachment(attachment, attachment)
-    tintItem(itemId)
-  }
-
-  adjustDrawOrder()
-
-  spine.skeleton.updateWorldTransform(Physics.none)
 }
 
 onMounted(async () => {
   if (!host.value) return
 
-  Assets.add({ alias: spineAssets.skeleton, src: publicAssetUrl('spine/正面_角色架構.json') })
-  Assets.add({ alias: spineAssets.atlas, src: publicAssetUrl('spine/正面_角色架構.atlas') })
-  await Assets.load([spineAssets.skeleton, spineAssets.atlas])
+  try {
+    Assets.add({ alias: spineAssets.skeleton, src: publicAssetUrl('spine/正面_角色架構.json') })
+    Assets.add({ alias: spineAssets.atlas, src: publicAssetUrl('spine/正面_角色架構.atlas') })
+    await Assets.load([spineAssets.skeleton, spineAssets.atlas])
 
-  app = new Application()
-  await app.init({ width: 360, height: 570, backgroundAlpha: 0, antialias: true, preference: 'webgl', preserveDrawingBuffer: true })
-  host.value.appendChild(app.canvas)
+    app = new Application()
+    try {
+      await app.init({ width: 360, height: 570, backgroundAlpha: 0, antialias: true, preference: 'webgl', preserveDrawingBuffer: true })
+    } catch {
+      await app.init({ width: 360, height: 570, backgroundAlpha: 0, antialias: true, preserveDrawingBuffer: true })
+    }
 
-  spine = Spine.from({ skeleton: spineAssets.skeleton, atlas: spineAssets.atlas })
-  spine.scale.set(0.29)
-  spine.x = 180
-  spine.y = 546
-  app.stage.addChild(spine)
-  applyOutfit()
+    if (!host.value) return
+    host.value.appendChild(app.canvas)
+
+    spine = Spine.from({ skeleton: spineAssets.skeleton, atlas: spineAssets.atlas })
+    spine.scale.set(0.29)
+    spine.x = 180
+    spine.y = 546
+    app.stage.addChild(spine)
+    applyOutfit()
+  } catch (error) {
+    console.error('Failed to initialize Spine avatar:', error)
+  }
 })
 
 watch(() => props.outfit, applyOutfit, { deep: true })
