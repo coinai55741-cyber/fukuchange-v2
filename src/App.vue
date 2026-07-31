@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -120,7 +120,7 @@ const promptTargetId = computed(() => {
   if (!question) return undefined
   return Object.values(question.target).find((id) => {
     const item = clothing.find((entry) => entry.id === id)
-    return item?.name === question.item && (!question.color || item.color === question.color)
+    return item?.name === question.item && (!question.color || isSameColor(item.color, question.color))
   })
 })
 const promptTargetItem = computed(() => clothing.find((item) => item.id === promptTargetId.value))
@@ -369,17 +369,17 @@ function materializeQuestionColor(question: Question): Question {
   if (!question.requireColor) return question
 
   const colorOptions = (question.colorOptions ?? []).filter((colorName) =>
-    clothing.some((item) => item.name === question.item && item.color === colorName)
+    clothing.some((item) => item.name === question.item && isSameColor(item.color, colorName))
   )
   if (!colorOptions.length) return question
 
   const color = shuffle(colorOptions)[0]
-  const targetItem = clothing.find((item) => item.name === question.item && item.color === color)
+  const targetItem = clothing.find((item) => item.name === question.item && isSameColor(item.color, color))
   if (!targetItem) return question
   const target = { ...question.target, [targetItem.slot]: targetItem.id }
 
   if (question.item === '泅水帽') {
-    const swimsuit = clothing.find((item) => item.name === '泅水衫' && item.color === color)
+    const swimsuit = clothing.find((item) => item.name === '泅水衫' && isSameColor(item.color, color))
     if (swimsuit) target.body = swimsuit.id
   }
 

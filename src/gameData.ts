@@ -241,6 +241,13 @@ export const pinyinByWord: Record<string, string> = {
   '羽絨衫': 'iˋ iungˇ samˊ', '膨線衫': 'pong xien samˊ', '泅水帽': 'qiuˇ suiˋ moapˋ', '泅水衫': 'siuˊ suiˋ samˊ'
 }
 
+export function isSameColor(c1?: string, c2?: string): boolean {
+  if (!c1 || !c2) return c1 === c2
+  if (c1 === c2) return true
+  const flowerSet = new Set(['紅色花圖案', '紅色花布', 'red_flower_pattern'])
+  return flowerSet.has(c1) && flowerSet.has(c2)
+}
+
 function findClothingId(entity: string, colorKey: string): string | undefined {
   const key = `${entity}@${colorKey}`
   if (targetItemIds[key]) return targetItemIds[key]
