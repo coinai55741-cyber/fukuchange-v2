@@ -149,7 +149,15 @@ export function getHakkaSentenceComponents(
 
     if (isFlower) {
       if (isPinyinQuestion && pinyinField === 'color') {
-        colorText = 'fungˇ sedˋ faˊ bu 个 '
+        if (effectiveDialect === 'hak-hailu') {
+          colorText = 'faˊ bu做个'
+        } else if (effectiveDialect === 'hak-dapu') {
+          colorText = 'fa⁺色个'
+        } else if (effectiveDialect === 'hak-namsihien') {
+          colorText = 'faˊ buˋ仔个'
+        } else {
+          colorText = 'fungˇ sedˋ faˊ bu个'
+        }
       } else {
         if (effectiveDialect === 'hak-hailu') {
           colorText = '花布做个'
