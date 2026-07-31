@@ -4,9 +4,10 @@ import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pi
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
+import LottieEmoji from './LottieEmoji.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
-type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean } | null
+type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean; emojiSrc?: string } | null
 type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
 type QuestionReview = {
   id: string
@@ -1182,6 +1183,19 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   return null
 }
 
+function getFeedbackEmojiSrc(key: string, text: string): string {
+  if (key === 'tier_success') {
+    return publicAssetUrl('emojis/success_1f604.json')
+  }
+  if (key === 'hot_with_warm_clothing' || key === 'hot_with_warm_item' || text.includes('汗流浹背') || text.includes('天氣熱') || text.includes('屬熱') || text.includes('悶熱') || text.includes('太熱')) {
+    return publicAssetUrl('emojis/hot_1f975.json')
+  }
+  if (key === 'cold_with_summer_clothing' || key === 'cool_with_warm_item' || text.includes('瑟瑟發抖') || text.includes('冷風吹') || text.includes('著涼') || text.includes('太冷')) {
+    return publicAssetUrl('emojis/cold_1f976.json')
+  }
+  return publicAssetUrl('emojis/failure_1f62b.json')
+}
+
 function submitOutfit() {
   const question = currentQuestion.value
   if (!question) return
@@ -1189,7 +1203,8 @@ function submitOutfit() {
   const decency = checkDressedDecency(question, selected.value)
   if (!decency.complete) {
     playSound('false')
-    feedback.value = { kind: 'error', text: feedbackMessage('missing_required_outfit', '出門前記得上衣、下衣、鞋子都要穿好喲！') }
+    const text = feedbackMessage('missing_required_outfit', '出門前記得上衣、下衣、鞋子都要穿好喲！')
+    feedback.value = { kind: 'error', text, emojiSrc: getFeedbackEmojiSrc('missing_required_outfit', text) }
     return
   }
 
@@ -1199,7 +1214,8 @@ function submitOutfit() {
 
   if (!equippedTargetItem) {
     playSound('false')
-    feedback.value = { kind: 'error', text: feedbackMessage('missing_target_item', '⚠️ 請先穿上適合該題目的衣物或配件！') }
+    const text = feedbackMessage('missing_target_item', '⚠️ 請先穿上適合該題目的衣物或配件！')
+    feedback.value = { kind: 'error', text, emojiSrc: getFeedbackEmojiSrc('missing_target_item', text) }
     return
   }
 
@@ -1400,7 +1416,7 @@ function submitOutfit() {
     const successText = feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！')
     if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText, true)
     playSound('next')
-    feedback.value = { kind: 'success', canAdvance: true, text: successText }
+    feedback.value = { kind: 'success', canAdvance: true, text: successText, emojiSrc: getFeedbackEmojiSrc('tier_success', successText) }
   } else {
     playSound('false')
     let text = ''
@@ -1621,7 +1637,16 @@ onBeforeUnmount(() => {
         <div class="question-badge">{{ hakkaBadgeText }}</div>
         <p class="question-description">{{ questionDescriptionText }}</p>
       </aside>
-      <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
+      <section class="avatar-zone">
+        <nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav>
+        <SpineAvatar ref="avatarRef" :outfit="selected" />
+        <aside v-if="feedback && feedback.emojiSrc" class="avatar-emoji-bubble" role="status" aria-label="角色心情表情">
+          <div class="emoji-bubble-card">
+            <LottieEmoji :src="feedback.emojiSrc" :size="84" />
+          </div>
+          <div class="emoji-bubble-tail"></div>
+        </aside>
+      </section>
       <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :id="`clothing-card-${card.id}`" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)" @keydown="handleClothingCardKeydown($event, card.id)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
