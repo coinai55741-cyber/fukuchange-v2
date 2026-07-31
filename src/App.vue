@@ -1654,7 +1654,6 @@ onBeforeUnmount(() => {
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
-          <LottieEmoji v-if="feedback.emojiData" :animationData="feedback.emojiData" :size="68" />
           <p>{{ feedback.text }}</p>
           <button v-if="feedback.canAdvance" class="primary" type="button" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button>
         </div>
