@@ -1,4 +1,4 @@
-﻿question_id,locale_code,language_code,dialect_code,field,text
+question_id,locale_code,language_code,dialect_code,field,text
 1,zh-Hant,zh,,context_text,，走起路來特別輕鬆自在。
 1,zh-Hant,zh,,錯誤提示 1：動詞,客語中，穿在身上的衣服、褲裙或鞋襪，要用「著」喔！快去檢查一下你的動詞吧！
 1,zh-Hant,zh,,錯誤提示 2：衣物,想要走起路來輕鬆自在、腳步輕盈，最關鍵的是鞋喔！
@@ -16,7 +16,7 @@
 5,zh-Hant,zh,,context_text,，下雨天腳不會濕，方便又舒適。
 5,zh-Hant,zh,,錯誤提示 1：動詞,客語中，穿在身上的衣服、褲裙或鞋襪，要用「著」喔！快去檢查一下你的動詞吧！
 5,zh-Hant,zh,,錯誤提示 2：衣物,路上到處都是積水和泥濘，普通的鞋子一下就濕透了，快換上防水防滑的雨天裝備吧！
-6,zh-Hant,zh,,context_text,，在泳池裡裡看著真亮眼，安全又生趣。
+6,zh-Hant,zh,,context_text,，在泳池裡裡看著真顯眼，安全又好看。
 6,zh-Hant,zh,,錯誤提示 1：動詞,"客語中，戴在頭上或頸部的配件（如帽仔,頸圍仔），要用「戴」喔！快去檢查一下你的動詞吧！"
 6,zh-Hant,zh,,錯誤提示 2：衣物,去泳池戲水，請換上玩水專用的服裝，並戴上保護頭部的配件喔！
 6,zh-Hant,zh,,錯誤提示 3：顏色,在水中游泳，戴上顯眼明亮的色彩，能讓救生員隨時注意你的安全，試試鮮豔的色系吧！
