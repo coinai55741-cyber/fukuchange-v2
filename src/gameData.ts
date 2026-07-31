@@ -1,6 +1,5 @@
 import quizCsv from '../data/quiz/穿搭小達人 - 出題架構.csv?raw'
 import tagsCsv from '../data/quiz/穿搭小達人 - 單字標籤.csv?raw'
-import rulesCsv from '../data/quiz/穿搭規則對照表.csv?raw'
 import feedbackMessagesCsv from '../data/quiz/feedback_messages.csv?raw'
 
 export type Slot = 'head' | 'neck' | 'body' | 'pants' | 'knee' | 'shoes'
@@ -31,14 +30,24 @@ export type Question = {
   context: string
   color: string
   colorPinyin: string
+  requireColor?: boolean
+  colorOptions?: string[]
   item: string
   itemPinyin: string
   target: Partial<Record<Slot, string>>
+  allowColors?: string[]
+  denyColors?: string[]
+  denyColorFeedbackKey?: string
+  denyItems?: string[]
+  limitedColor?: string
+  limitedColorMax?: number
+  limitedColorFeedbackKey?: string
   tags?: string[]
-  errorPromptVerb?: string
-  errorPromptItem?: string
-  errorPromptColor?: string
   requiredSlots?: Slot[]
+}
+
+function splitList(value = '') {
+  return value.split(/[\s,\n\r,、，]+/).map(s => s.trim()).filter(Boolean)
 }
 
 export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
@@ -205,7 +214,7 @@ const targetItemIds: Record<string, string> = {
   'long_pants@black': 'pants-black', 'long_pants@white': 'pants-long-white', 'long_pants@yellow': 'pants-long-yellow', 'skirt@white': 'pants-white',
   'shoes@white': 'shoes-white', 'shoes@black': 'shoes-black', 'rain_boots@yellow': 'shoes-rain', 'rain_boots@black': 'rain-boots-black',
   'hat@yellow': 'head-yellow', 'hat@black': 'head-black', 'hat@white': 'head-white', 'swim_cap@yellow': 'head-swim-cap-yellow', 'swimsuit@yellow': 'body-swimsuit-yellow',
-  'puffer_jacket@white': 'body-puffer-white', 'puffer_jacket@black': 'body-puffer-black', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white',
+  'puffer_jacket@white': 'body-puffer-white', 'puffer_jacket@black': 'body-puffer-black', 'knee_protector@yellow': 'knee-yellow', 'scarf@white': 'neck-white', 'scarf@none': 'neck-white',
 }
 
 const slotByEntity: Record<string, Slot> = {
@@ -224,7 +233,7 @@ const colorLabels: Record<string, string> = {
   yellow: '黃色', white: '白色', black: '烏色', blue: '藍色', none: '',
   orange: '柑仔色', purple: '吊菜色', red_flower_pattern: '紅色花圖案'
 }
-const pinyinByWord: Record<string, string> = { 
+export const pinyinByWord: Record<string, string> = { 
   '藍衫': 'lamˋ samˊ', '短衫': 'donˋ qiu', '短褲': 'donˋ  fu', '長褲': 'congˇ fu', '鞋': 'haiˇ', 
   '水靴筒': 'suiˋ hioˊ thungˇ', '帽仔': 'mo eˋ', '頸圍仔': 'giangˋ viˇ eˋ', '膝頭落仔': 'qidˋ teuˇ labˋ eˋ', 
   '黃色': 'vongˇ sedˋ', '白色': 'pag sedˋ', '烏色': 'vuˊ sedˋ', '藍色': 'lamˇ sedˋ',
@@ -272,7 +281,8 @@ function buildQuestionsFromCsv(): Question[] {
     const promptEntity = displayEntityByChinese[item]
     const promptToken = targetTokens.map((token) => token.split(':')[1]).find((token) => token?.startsWith(`${promptEntity}@`))
     const promptColor = promptToken?.split('@')[1] ?? ''
-    const color = item === '藍衫' ? '' : (colorLabels[promptColor] ?? '')
+    const requireColor = row.require_color?.trim() === '是'
+    const color = item === '藍衫' || !requireColor ? '' : (colorLabels[promptColor] ?? '')
 
     const csvSlots = row.required_slots ? row.required_slots.split(',').map(s => s.trim()).filter(Boolean) : ['clothes', 'pants', 'shoes']
     const requiredSlots = csvSlots.map(s => {
@@ -289,45 +299,25 @@ function buildQuestionsFromCsv(): Question[] {
       context: row.context_text,
       color,
       colorPinyin: pinyinByWord[color] ?? color,
+      requireColor,
+      colorOptions: splitList(row.true_color).filter((colorName) => colorName !== 'X'),
       item,
       itemPinyin: pinyinByWord[item] ?? item,
       target,
+      allowColors: splitList(row.allow_colors),
+      denyColors: splitList(row.deny_colors),
+      denyColorFeedbackKey: row.deny_color_feedback_key?.trim() || '',
+      denyItems: splitList(row.deny_items),
+      limitedColor: row.limited_color?.trim() || '',
+      limitedColorMax: Number(row.limited_color_max) || undefined,
+      limitedColorFeedbackKey: row.limited_color_feedback_key?.trim() || '',
       tags: row.must_have.split(',').map((tag) => tag.trim()).filter(Boolean),
-      errorPromptVerb: row['錯誤提示 1：動詞'] || '',
-      errorPromptItem: row['錯誤提示 2：衣物'] || '',
-      errorPromptColor: row['錯誤提示 3：顏色'] || '',
       requiredSlots
     }]
   })
 }
 
 export const questions: Question[] = buildQuestionsFromCsv()
-
-export interface RuleData {
-  type: string
-  name: string
-  slot: string
-  verb: string
-  tags: string[]
-  blacklist: string[]
-  warning: string
-}
-
-function buildRulesFromCsv(): RuleData[] {
-  return parseCsv(rulesCsv).map((row) => {
-    const type = row['規則類型'] || ''
-    const name = row['名稱/觸發條件'] || ''
-    const slot = row['部位/英文'] || ''
-    const verb = row['適用動詞/搭配'] || ''
-    const tags = row['適合場合/天氣'] ? row['適合場合/天氣'].split(',').map(t => t.trim()).filter(Boolean) : []
-    const blacklist = row['禁用場合/黑名單'] ? row['禁用場合/黑名單'].split(',').map(t => t.trim()).filter(Boolean) : []
-    const warning = row['警告提示與評語文案'] || ''
-
-    return { type, name, slot, verb, tags, blacklist, warning }
-  })
-}
-
-export const rulesConfig = buildRulesFromCsv()
 
 export interface FeedbackMessageData {
   key: string

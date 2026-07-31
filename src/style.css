@@ -2815,8 +2815,15 @@
   border-color: #236f8f;
 }
 .closet-footer strong {
-  background: #236f8f;
-  color: #fff;
+  background: #eee6dc;
+  color: #70645a;
+}
+.feedback {
+  padding-right: 3.5rem !important;
+}
+.feedback p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .dictionary-header-actions select:focus-visible {
   outline: 3px solid #1d4ed8;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { clothing, questions, tabs, rulesConfig, feedbackMessages, feedbackMessageRecords, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -167,6 +167,72 @@ const dictionaryEntries = computed(() => getDictionaryItems(selectedDialect.valu
 const dictionaryItems = computed(() => dictionaryEntries.value.filter(item => item.type === 'item'))
 const dictionaryColors = computed(() => dictionaryEntries.value.filter(item => item.type === 'color'))
 
+const vocabularyLookupIds: Record<string, string> = {
+  '短衫': 'short_shirt',
+  '短袖': 'short_shirt',
+  '長褲': 'long_pants',
+  '短褲': 'shorts',
+  '裙': 'skirt',
+  '裙子': 'skirt',
+  '羽絨衫': 'puffer_jacket',
+  '膨線衫': 'sweater',
+  '頸圍仔': 'scarf',
+  '圍巾': 'scarf',
+  '鞋': 'shoes',
+  '水靴筒': 'rain_boots',
+  '雨鞋': 'rain_boots',
+  '帽仔': 'hat',
+  '帽子': 'hat',
+  '膝頭落仔': 'knee_protector',
+  '護膝': 'knee_protector',
+  '藍衫': 'hakka_shirt',
+  '泅水帽': 'swim_cap',
+  '泳帽': 'swim_cap',
+  '泅水衫': 'swimsuit',
+  '泳衣': 'swimsuit',
+  '柑仔色': 'orange',
+  '橘色': 'orange',
+  '黃色': 'yellow',
+  '白色': 'white',
+  '烏色': 'black',
+  '黑色': 'black',
+  '吊菜色': 'purple',
+  '紫色': 'purple',
+  '茄色': 'purple',
+  '紅色花圖案': 'red_flower_pattern',
+  '紅色花布': 'red_flower_pattern'
+}
+
+function dictionaryEntryForTerm(value: string) {
+  const lookupId = vocabularyLookupIds[value]
+  return dictionaryEntries.value.find(item =>
+    (lookupId && item.id === lookupId) ||
+    item.name === value ||
+    item.translation === value
+  )
+}
+
+function localizedVocabularyName(value: string) {
+  const entry = dictionaryEntryForTerm(value)
+  if (!entry?.name) return value
+  return entry.name
+}
+
+function localizedVocabularyPinyin(value: string) {
+  const entry = dictionaryEntryForTerm(value)
+  if (!entry?.pinyin) return 'V'
+  return entry.pinyin
+}
+
+function localizedQuestionTerm(value: string, usePinyin: boolean) {
+  return usePinyin ? localizedVocabularyPinyin(value) : localizedVocabularyName(value)
+}
+
+function chineseVocabularyName(value: string) {
+  const entry = dictionaryEntryForTerm(value)
+  return entry?.translation || value
+}
+
 const filteredDictionaryItems = computed(() => {
   const query = dictionarySearch.value.trim().toLowerCase()
   if (!query) return dictionaryItems.value
@@ -180,8 +246,8 @@ const hakkaBadgeText = computed(() => {
   const usePinyinForColor = isPinyinQuestion.value && hasColor && pinyinField.value === 'color'
   const usePinyinForItem = isPinyinQuestion.value && (!hasColor || pinyinField.value === 'item')
 
-  const color = usePinyinForColor ? question.colorPinyin : question.color
-  const item = usePinyinForItem ? question.itemPinyin : question.item
+  const color = question.color ? localizedQuestionTerm(question.color, usePinyinForColor) : ''
+  const item = localizedQuestionTerm(question.item, usePinyinForItem)
   const phrase = color ? `${color}个${item}` : item
   return `${question.verb ?? '著'}${phrase}`
 })
@@ -205,11 +271,12 @@ const seasonWeatherLabel = computed(() => {
 
 function backgroundImageForQuestion(question: Question, mobile = false) {
   const tags = question.tags ?? []
+  const context = question.context ?? ''
   const prefix = mobile ? 'MB' : 'BG'
 
   if (tags.includes('冷')) return `S2_m1_${prefix}winter.png`
   if (tags.includes('雨') || tags.includes('下雨') || tags.includes('rain')) return `S2_m1_${prefix}rain.png`
-  if (tags.includes('暗') || tags.includes('晚上')) return `S2_m1_${prefix}night.png`
+  if (tags.includes('暗') || tags.includes('晚上') || context.includes('夜晚')) return `S2_m1_${prefix}night.png`
   return `S2_m1_${prefix}hot.png`
 }
 
@@ -298,11 +365,44 @@ function shuffle<T>(values: T[]) {
   return [...values].sort(() => Math.random() - 0.5)
 }
 
+function materializeQuestionColor(question: Question): Question {
+  if (!question.requireColor) return question
+
+  const colorOptions = (question.colorOptions ?? []).filter((colorName) =>
+    clothing.some((item) => item.name === question.item && item.color === colorName)
+  )
+  if (!colorOptions.length) return question
+
+  const color = shuffle(colorOptions)[0]
+  const targetItem = clothing.find((item) => item.name === question.item && item.color === color)
+  if (!targetItem) return question
+  const target = { ...question.target, [targetItem.slot]: targetItem.id }
+
+  if (question.item === '泅水帽') {
+    const swimsuit = clothing.find((item) => item.name === '泅水衫' && item.color === color)
+    if (swimsuit) target.body = swimsuit.id
+  }
+
+  if (question.item === '泅水衫') {
+    const swimCap = clothing.find((item) => item.name === '泅水帽' && item.color === color)
+    if (swimCap) target.head = swimCap.id
+  }
+
+  return {
+    ...question,
+    id: `${question.id}@${targetItem.colorKey}`,
+    color,
+    colorPinyin: pinyinByWord[color] ?? color,
+    target
+  }
+}
+
 function preferredDistractorsForQuestion(question: Question | undefined, tab: ClosetTab, inTab: Clothing[], requiredIds: Set<string>) {
   if (!question) return []
   const targetIds = Object.values(question.target ?? {})
   const asksRainBoots = question.item?.includes('水靴筒') || targetIds.some((id) => id.startsWith('rain-boots') || id === 'shoes-rain')
   const asksSwimCap = question.item?.includes('泅水帽') || targetIds.some((id) => id.startsWith('swim-cap') || id === 'head-swim-cap-yellow')
+  const asksScarf = question.item?.includes('頸圍仔') || targetIds.some((id) => id.startsWith('scarf-') || id === 'neck-white')
 
   if (tab === 'shoes' && asksRainBoots) {
     return shuffle(inTab.filter((item) => item.id.startsWith('rain-boots-') && !requiredIds.has(item.id)))
@@ -310,6 +410,10 @@ function preferredDistractorsForQuestion(question: Question | undefined, tab: Cl
 
   if (tab === 'accessories' && asksSwimCap) {
     return shuffle(inTab.filter((item) => item.id.startsWith('swim-cap-') && item.colorKey !== 'yellow' && !requiredIds.has(item.id)))
+  }
+
+  if (tab === 'accessories' && asksScarf && !question.color) {
+    return shuffle(inTab.filter((item) => (item.id.startsWith('scarf-') || item.id === 'neck-white') && !requiredIds.has(item.id)))
   }
 
   return []
@@ -394,6 +498,7 @@ function resetDictionarySearch() {
 }
 
 function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
+  const questionPool = allQuestions.map(materializeQuestionColor)
   const questionCategory = (question: Question) => {
     const tags = question.tags ?? []
     const hasCold = tags.includes('冷')
@@ -423,15 +528,24 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
   }
 
   const usedScenarioKeys = new Set<string>()
-  const promptKey = (question: Question) => `${question.item}::${question.color || '無色'}`
+  const displayToken = (value: string, kind: 'color' | 'item') => `${kind}:${value}`
+  const promptDisplayTokens = (question: Question) => {
+    const tokens = new Set<string>()
+    if (question.color) {
+      tokens.add(displayToken(localizedVocabularyName(question.color), 'color'))
+      tokens.add(displayToken(localizedVocabularyPinyin(question.color), 'color'))
+    }
+    tokens.add(displayToken(localizedVocabularyName(question.item), 'item'))
+    tokens.add(displayToken(localizedVocabularyPinyin(question.item), 'item'))
+    return [...tokens].filter((token) => !token.endsWith(':'))
+  }
+  const hasTokenOverlap = (tokens: string[], usedTokens: Set<string>) => tokens.some((token) => usedTokens.has(token))
   const scenarioKey = (question: Question) => (question.tags?.length ? [...question.tags].sort().join('|') : questionCategory(question))
 
   const pickQuestions = (poolQuestions: Question[], targetCount: number, priorityCategories: string[], avoidUsedScenarios = false, priorityStageIds: number[] = []) => {
     const result: Question[] = []
     const selectedIds = new Set<string>()
-    const poolPromptKeys = new Set<string>()
-    const poolPromptItems = new Set<string>()
-    const poolPromptColors = new Set<string>()
+    const poolPromptTokens = new Set<string>()
     const itemCounts = new Map<string, number>()
     const categoryCounts = new Map<string, number>()
     const maxSameItem = 2
@@ -440,25 +554,23 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     const canUseQuestion = (question: Question, relaxItemLimit = false, relaxCategoryLimit = false, relaxPromptLimit = false) => {
       if (selectedIds.has(question.id)) return false
       const category = questionCategory(question)
-      const color = question.color || '無色'
+      const item = question.item
+      const questionTokens = promptDisplayTokens(question)
       if (avoidUsedScenarios && usedScenarioKeys.has(scenarioKey(question))) return false
-      if (!relaxPromptLimit && poolPromptKeys.has(promptKey(question))) return false
-      if (!relaxPromptLimit && poolPromptItems.has(question.item)) return false
-      if (!relaxPromptLimit && poolPromptColors.has(color)) return false
-      if (!relaxItemLimit && (itemCounts.get(question.item) ?? 0) >= maxSameItem) return false
+      if (!relaxPromptLimit && hasTokenOverlap(questionTokens, poolPromptTokens)) return false
+      if (!relaxItemLimit && (itemCounts.get(item) ?? 0) >= maxSameItem) return false
       if (!relaxCategoryLimit && (categoryCounts.get(category) ?? 0) >= maxSameCategory) return false
       return true
     }
 
     const addQuestion = (question: Question) => {
       const category = questionCategory(question)
+      const item = question.item
       result.push(question)
       selectedIds.add(question.id)
       usedScenarioKeys.add(scenarioKey(question))
-      poolPromptKeys.add(promptKey(question))
-      poolPromptItems.add(question.item)
-      poolPromptColors.add(question.color || '無色')
-      itemCounts.set(question.item, (itemCounts.get(question.item) ?? 0) + 1)
+      promptDisplayTokens(question).forEach((token) => poolPromptTokens.add(token))
+      itemCounts.set(item, (itemCounts.get(item) ?? 0) + 1)
       categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1)
     }
 
@@ -503,15 +615,15 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
     return shuffle(result).slice(0, targetCount)
   }
 
-  const pool1Questions = allQuestions.filter((question) => question.pool === 1)
-  const pool2Questions = allQuestions.filter((question) => question.pool === 2)
+  const pool1Questions = questionPool.filter((question) => question.pool === 1)
+  const pool2Questions = questionPool.filter((question) => question.pool === 2)
   let bestSet: Question[] = []
 
   const fillToTenQuestions = (selectedQuestions: Question[]) => {
     const selectedIds = new Set(selectedQuestions.map((question) => question.id))
     const pool2Selected = selectedQuestions.filter((question) => question.pool === 2)
-    const pool2Items = new Set(pool2Selected.map((question) => question.item))
-    const pool2Colors = new Set(pool2Selected.map((question) => question.color || '無色'))
+    const pool2Tokens = new Set<string>()
+    pool2Selected.flatMap(promptDisplayTokens).forEach((token) => pool2Tokens.add(token))
     const finalQuestions = [...selectedQuestions]
 
     const addFrom = (candidates: Question[]) => {
@@ -520,23 +632,25 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
         if (selectedIds.has(question.id)) continue
         finalQuestions.push(question)
         selectedIds.add(question.id)
+        if (question.pool === 2) {
+          promptDisplayTokens(question).forEach((token) => pool2Tokens.add(token))
+        }
       }
     }
 
     addFrom(shuffle(pool2Questions.filter((question) => {
-      const color = question.color || '無色'
-      return !selectedIds.has(question.id) && !pool2Items.has(question.item) && !pool2Colors.has(color)
+      return !selectedIds.has(question.id) && !hasTokenOverlap(promptDisplayTokens(question), pool2Tokens)
     })))
     addFrom(shuffle(pool2Questions.filter((question) => !selectedIds.has(question.id))))
-    addFrom(shuffle(allQuestions.filter((question) => !selectedIds.has(question.id))))
+    addFrom(shuffle(questionPool.filter((question) => !selectedIds.has(question.id))))
 
     return finalQuestions.slice(0, 10)
   }
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
     usedScenarioKeys.clear()
-    const pool1 = pickQuestions(pool1Questions.length ? pool1Questions : allQuestions, 5, shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture']))
-    const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : allQuestions, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style', 'sport', 'daily'])], true, [9, 10])
+    const pool1 = pickQuestions(pool1Questions.length ? pool1Questions : questionPool, 5, shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture']))
+    const pool2 = pickQuestions(pool2Questions.length ? pool2Questions : questionPool, 5, ['cleaning', ...shuffle(['cold-rain', 'cold', 'rain', 'water', 'night', 'culture', 'formal', 'event', 'style', 'sport', 'daily'])], true, [9, 10])
     const candidateSet = [...pool1, ...pool2]
     if (candidateSet.length > bestSet.length) bestSet = candidateSet
     if (candidateSet.length === 10) return candidateSet
@@ -731,11 +845,11 @@ const colorDb: Record<string, ColorData> = {
   '黃色': { name: '黃色', weather: ['亮'], occasions: ['杭菊', '活潑', 'color'], blacklist: ['賞螢', '打掃'] },
   '白色': { name: '白色', weather: ['亮'], occasions: ['桐花', '杭菊', '正式', 'color'], blacklist: ['打掃'] },
   '烏色': { name: '烏色', weather: ['暗'], occasions: ['打掃', '正式', 'color'], blacklist: ['喜慶', '探親'] },
-  '藍色': { name: '藍色', weather: [], occasions: ['color'], blacklist: [] },
-  '固定藍染': { name: '固定藍染', weather: [], occasions: ['color'], blacklist: [] },
+  '藍色': { name: '藍色', weather: [], occasions: ['客庄', 'color'], blacklist: [] },
+  '固定藍染': { name: '固定藍染', weather: [], occasions: ['客庄', 'color'], blacklist: [] },
   '柑仔色': { name: '柑仔色', weather: ['亮'], occasions: ['活潑', 'color'], blacklist: ['賞螢', '打掃'] },
   '吊菜色': { name: '吊菜色', weather: ['亮', '暗'], occasions: ['日常', '活潑', 'color'], blacklist: [] },
-  '紅色花圖案': { name: '紅色花圖案', weather: ['亮'], occasions: ['客庄', 'color'], blacklist: [] },
+  '紅色花圖案': { name: '紅色花圖案', weather: ['亮'], occasions: ['客庄', '活潑', 'color'], blacklist: [] },
   'X': {
     name: 'X',
     weather: ['亮', '暗'],
@@ -744,14 +858,12 @@ const colorDb: Record<string, ColorData> = {
   }
 }
 
-function getRuleWarning(name: string, defaultWarning: string): string {
-  const rule = rulesConfig.find(r => r.name === name)
-  return rule?.warning || defaultWarning
-}
-
 function feedbackMessage(key: string, fallback: string, replacements: Record<string, string> = {}) {
   const template = feedbackMessages[key] || fallback
-  return Object.entries(replacements).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), template)
+  return Object.entries(replacements).reduce((text, [name, value]) => {
+    const replacement = name === 'color' || name === 'item' ? localizedVocabularyName(value) : value
+    return text.split(`{${name}}`).join(replacement)
+  }, template)
 }
 
 function feedbackMeta(key: string) {
@@ -766,8 +878,9 @@ function outfitSentence(question: Question, outfit: Partial<Record<Slot, string>
   const targetSlot = promptTargetItem.value?.slot ?? Object.keys(question.target)[0] as Slot | undefined
   const item = targetSlot ? clothing.find((entry) => entry.id === outfit[targetSlot]) : undefined
   if (!item) return '未完成穿搭'
-  const color = question.color ? item.color : ''
-  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
+  const color = question.color ? localizedVocabularyName(item.color) : ''
+  const itemName = localizedVocabularyName(item.name)
+  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${itemName}${question.context}`
 }
 
 function reviewHakkaBadge(question: Question, index: number) {
@@ -775,8 +888,8 @@ function reviewHakkaBadge(question: Question, index: number) {
   const isReviewPinyinQuestion = index >= 5
   const usePinyinForColor = isReviewPinyinQuestion && hasColor && pinyinField.value === 'color'
   const usePinyinForItem = isReviewPinyinQuestion && (!hasColor || pinyinField.value === 'item')
-  const color = usePinyinForColor ? question.colorPinyin : question.color
-  const item = usePinyinForItem ? question.itemPinyin : question.item
+  const color = question.color ? localizedQuestionTerm(question.color, usePinyinForColor) : ''
+  const item = localizedQuestionTerm(question.item, usePinyinForItem)
   const phrase = color ? `${color}个${item}` : item
   return `${question.verb ?? '著'}${phrase}`
 }
@@ -811,7 +924,7 @@ function outfitSnapshotAlt(skipped: boolean, index: number) {
   const slotOrder: Slot[] = ['head', 'neck', 'body', 'pants', 'knee', 'shoes']
   const actionBySlot: Partial<Record<Slot, string>> = {
     head: '戴',
-    neck: '圍',
+    neck: '戴',
     body: '著',
     pants: '穿',
     knee: '戴',
@@ -822,8 +935,9 @@ function outfitSnapshotAlt(skipped: boolean, index: number) {
     .filter((item): item is Clothing => Boolean(item))
     .map(item => {
       const action = actionBySlot[item.slot] ?? '穿'
-      const colorText = item.color !== '無' ? `${item.color}个` : ''
-      return `${action}${colorText}${item.name}`
+      const colorText = item.color !== '無' ? chineseVocabularyName(item.color) : ''
+      const itemText = chineseVocabularyName(item.name)
+      return `${action}${colorText}${itemText}`
     })
   return items.length ? `第 ${index} 題穿搭快照：${items.join('、')}` : `第 ${index} 題沒有選擇穿搭`
 }
@@ -846,8 +960,8 @@ function questionDisplaySentence(question: Question, index: number) {
   const isReviewPinyinQuestion = index >= 5
   const usePinyinForColor = isReviewPinyinQuestion && hasColor && pinyinField.value === 'color'
   const usePinyinForItem = isReviewPinyinQuestion && (!hasColor || pinyinField.value === 'item')
-  const color = usePinyinForColor ? question.colorPinyin : question.color
-  const item = usePinyinForItem ? question.itemPinyin : question.item
+  const color = question.color ? localizedQuestionTerm(question.color, usePinyinForColor) : ''
+  const item = localizedQuestionTerm(question.item, usePinyinForItem)
   const phrase = color ? `${color} 个 ${item}` : item
   return `${question.verb ?? '著'} ${phrase}${question.context}`
 }
@@ -855,9 +969,10 @@ function questionDisplaySentence(question: Question, index: number) {
 function correctSentence(question: Question) {
   const targetId = promptTargetId.value ?? Object.values(question.target)[0]
   const item = clothing.find((entry) => entry.id === targetId)
-  if (!item) return `${question.verb ?? '著'} ${question.color ? `${question.color}个` : ''}${question.item}${question.context}`
-  const color = question.color ? item.color : ''
-  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${item.name}${question.context}`
+  if (!item) return `${reviewHakkaBadge(question, questionIndex.value)}${question.context}`
+  const color = question.color ? localizedVocabularyName(item.color) : ''
+  const itemName = localizedVocabularyName(item.name)
+  return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${itemName}${question.context}`
 }
 
 function recordQuestionReview(question: Question, points: number, passed: boolean, skipped: boolean, feedbackKey: string, feedbackText: string, targetMatched = passed, contextMistakes: string[] = []) {
@@ -905,6 +1020,10 @@ function checkDressedDecency(q: Question, selectedMap: Partial<Record<Slot, stri
 const clothingOccasions = new Set(['日常', '運動', '正式', '喜慶'])
 
 function validateItem(item: { name: string; type: string; weather: string[]; blacklist: string[]; occasions: string[]; verbs: string[] }, currentLevel: any, verb: string, isTargetCheck = false) {
+  if (currentLevel.denyItems?.includes(item.name)) {
+    return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `「${item.name}」不符合此場合喔！`, { occasion: currentLevel.occasions.join('、'), item: item.name }) }
+  }
+
   if (currentLevel.weather && !item.weather.includes(currentLevel.weather)) {
     return { valid: false, reason: feedbackMessage('item_weather_mismatch', `季節氣候不符：題目要求「${currentLevel.weather}」，但「${item.name}」僅適用「${item.weather.join(',')}」天氣。`, { weather: currentLevel.weather, item: item.name, itemWeather: item.weather.join(',') }) }
   }
@@ -946,6 +1065,12 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
 }
 
 function validateColor(color: ColorData, currentLevel: any, isTargetCheck = false) {
+  const explicitlyAllowed = currentLevel.allowedColors?.includes(color.name)
+
+  if (currentLevel.denyColors?.includes(color.name)) {
+    return { valid: false, reason: feedbackMessage(currentLevel.denyColorFeedbackKey || 'color_occasion_conflict', `顏色搭配衝突：此題不可選擇「${color.name}」。`, { occasion: currentLevel.occasions.join('、'), color: color.name }) }
+  }
+
   if (isTargetCheck && currentLevel.brightness) {
     if (!color.weather.includes(currentLevel.brightness)) {
       return { valid: false, reason: feedbackMessage('color_brightness_mismatch', `色彩亮度不符：題目要求為「${currentLevel.brightness}」，但「${color.name}」屬於「${color.weather.join(',')}」。`, { brightness: currentLevel.brightness, color: color.name, colorWeather: color.weather.join(',') }) }
@@ -953,9 +1078,8 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
   }
 
   for (const occasion of currentLevel.occasions) {
-    if (color.blacklist.includes(occasion)) {
-      const customWarning = getRuleWarning(color.name, feedbackMessage('color_occasion_conflict', `顏色搭配衝突：此題涉及「${occasion}」，但「${color.name}」與該場合互斥。`, { occasion, color: color.name }))
-      return { valid: false, reason: customWarning }
+    if (color.blacklist.includes(occasion) && !explicitlyAllowed) {
+      return { valid: false, reason: feedbackMessage('color_occasion_conflict', `「${color.name}」較不適合這個場合喲！`, { occasion, color: color.name }) }
     }
   }
 
@@ -972,16 +1096,18 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
     }
   }
 
-  if (color.name !== 'X') {
-    const targetOccasions = currentLevel.occasions.filter((occ: string) => occ !== '日常')
+  if (color.name !== 'X' && !explicitlyAllowed) {
+    const targetOccasions = currentLevel.occasions.filter((occ: string) => {
+      if (occ === '日常') return false
+      return isTargetCheck || !currentLevel.colorThemes?.includes(occ)
+    })
     if (targetOccasions.length > 0) {
       const colorsList = Object.values(colorDb)
       for (const occ of targetOccasions) {
         const anyColorHasOccasion = colorsList.some(c => c.name !== 'X' && c.occasions.includes(occ))
         if (anyColorHasOccasion) {
           if (!color.occasions.includes(occ)) {
-            const customWarning = getRuleWarning(color.name, feedbackMessage('color_context_mismatch', `顏色不符場合：此題場合為「${occ}」，但顏色「${color.name}」不具備該場合屬性。`, { occasion: occ, color: color.name }))
-            return { valid: false, reason: customWarning }
+            return { valid: false, reason: feedbackMessage('color_context_mismatch', `「${color.name}」較不適合這個場合喲！`, { occasion: occ, color: color.name }) }
           }
         }
       }
@@ -995,14 +1121,14 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (itemName === '藍衫' && colorName !== 'X' && colorName !== '') {
     return {
       type: 'color-conflict',
-      reason: getRuleWarning('藍衫重複染色', `「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。`)
+      reason: feedbackMessage('hakka_shirt_color_conflict', `「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。`)
     }
   }
 
   if (itemName === '長褲' && (contextText.includes('籃球') || contextText.includes('籃球時'))) {
     return {
       type: 'movement-restriction',
-      reason: getRuleWarning('打籃球穿長褲', `語意不協調：打籃球要求手腳靈巧好活動，搭配「長褲」可能限制劇烈跑跳。`)
+      reason: feedbackMessage('basketball_long_pants', `語意不協調：打籃球要求手腳靈巧好活動，搭配「長褲」可能限制劇烈跑跳。`)
     }
   }
 
@@ -1010,7 +1136,7 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (warmClothing.includes(itemName) && (currentLevel.weather === '熱' || contextText.includes('涼爽') || contextText.includes('熱'))) {
     return {
       type: 'seasonal-mismatch',
-      reason: getRuleWarning('冬衣夏穿', `語意不協調：此題為炎熱/涼爽情境，搭配禦寒衣物「${itemName}」不合常理。`)
+      reason: feedbackMessage('hot_with_warm_item', `語意不協調：此題為炎熱/涼爽情境，搭配禦寒衣物「${itemName}」不合常理。`, { item: itemName })
     }
   }
 
@@ -1018,21 +1144,21 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (itemName === '水靴筒' && !currentLevel.isRaining && !contextText.includes('雨') && !isCleaning) {
     return {
       type: 'equipment-mismatch',
-      reason: getRuleWarning('非雨天/非打掃穿雨鞋', `情境不協調：非下雨或打掃情境搭配雨鞋「水靴筒」不合語意。`)
+      reason: feedbackMessage('rain_boot_context_mismatch', `情境不協調：非下雨或打掃情境搭配雨鞋「水靴筒」不合語意。`)
     }
   }
 
   if ((itemName === '泅水帽' || itemName === '泅水衫') && !currentLevel.occasions.includes('水上') && !contextText.includes('泳')) {
     return {
       type: 'equipment-mismatch',
-      reason: getRuleWarning('非游泳穿泅水帽/衫', `情境不協調：非水上活動情境搭配「泅水帽/泅水衫」不合語意。`)
+      reason: feedbackMessage('water_context_mismatch', `情境不協調：非水上活動情境搭配「泅水帽/泅水衫」不合語意。`, { item: itemName })
     }
   }
 
   if ((itemName === '長褲' || itemName === '鞋') && contextText.includes('涼爽')) {
     return {
       type: 'seasonal-mismatch',
-      reason: getRuleWarning('涼爽天氣穿長褲或包鞋', `語意不協調：此題敘事句強調「涼爽」，搭配「${itemName}」體感溫度較高，較不符合涼爽感。`)
+      reason: feedbackMessage('cool_with_warm_item', `語意不協調：此題敘事句強調「涼爽」，搭配「${itemName}」體感溫度較高，較不符合涼爽感。`, { item: itemName })
     }
   }
 
@@ -1077,8 +1203,14 @@ function submitOutfit() {
     occasions: baseOccasions,
     colorThemes: question.tags?.filter(t => ['桐花', '杭菊', '客庄', '打掃', '活潑'].includes(t)) || [],
     allowedVerbs: question.verb ? [question.verb] : [],
-    allowedColors: splitQuestionValues(question.color),
-    allowedItems: splitQuestionValues(question.item)
+    allowedColors: question.allowColors?.length ? question.allowColors : splitQuestionValues(question.color),
+    allowedItems: splitQuestionValues(question.item),
+    denyColors: question.denyColors ?? [],
+    denyColorFeedbackKey: question.denyColorFeedbackKey || '',
+    denyItems: question.denyItems ?? [],
+    limitedColor: question.limitedColor || '',
+    limitedColorMax: question.limitedColorMax,
+    limitedColorFeedbackKey: question.limitedColorFeedbackKey || ''
   }
   const seasonalWeather = seasonalWeatherForQuestion(question)
 
@@ -1087,7 +1219,7 @@ function submitOutfit() {
 
   if (!equippedTargetItem.verbs.includes(verb)) {
     isValid = false
-    reasonText = question.errorPromptVerb || feedbackMessage('verb_item_conflict', `動詞與衣物衝突：此處動詞為「${verb}」，但「${itemName}」不能搭配它。`, { verb, item: itemName })
+    reasonText = feedbackMessage('verb_item_conflict', `動詞與衣物衝突：此處動詞為「${verb}」，但「${itemName}」不能搭配它。`, { verb, item: itemName })
   }
 
   if (isValid) {
@@ -1097,7 +1229,7 @@ function submitOutfit() {
       const isWeatherBad = currentLevel.weather && !equippedTargetItem.weather.includes(currentLevel.weather)
       if (isBlacklisted || isWeatherBad) {
         isValid = false
-        reasonText = question.errorPromptItem || itemRes.reason || ''
+        reasonText = itemRes.reason || ''
       }
     }
   }
@@ -1110,7 +1242,7 @@ function submitOutfit() {
         const isColorBlacklisted = currentLevel.occasions.some(occ => colorObj.blacklist.includes(occ))
         if (isColorBlacklisted) {
           isValid = false
-          reasonText = question.errorPromptColor || colorRes.reason || ''
+          reasonText = colorRes.reason || ''
         }
       }
     }
@@ -1118,7 +1250,7 @@ function submitOutfit() {
 
   if (isValid && itemName === '藍衫' && colorName !== 'X') {
     isValid = false
-    reasonText = getRuleWarning('藍衫重複染色', '「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。')
+    reasonText = feedbackMessage('hakka_shirt_color_conflict', '「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。')
   }
 
   const isItemMatch = currentLevel.allowedItems.includes(itemName)
@@ -1131,13 +1263,49 @@ function submitOutfit() {
   let contextMistakes: string[] = []
   const equippedItems = Object.values(selected.value).map(id => clothing.find(c => c.id === id)).filter((c): c is Clothing => Boolean(c))
 
+  const limitedColors = splitQuestionValues(currentLevel.limitedColor)
+  const limitedColorMax = Number(currentLevel.limitedColorMax)
+  if (limitedColors.length && Number.isFinite(limitedColorMax)) {
+    for (const limitedColor of limitedColors) {
+      const limitedColorItems = equippedItems.filter(item => item.color === limitedColor)
+      if (limitedColorItems.length > limitedColorMax) {
+        isContextMatch = false
+        contextMistakes = limitedColorItems.map(item => `${item.color}个${item.name}`)
+        contextReason = feedbackMessage(
+          currentLevel.limitedColorFeedbackKey || 'limited_color_over_max',
+          `「${limitedColor}」出現太多件，較不符合此情境。`,
+          {
+            color: limitedColor,
+            count: String(limitedColorItems.length),
+            max: String(limitedColorMax)
+          }
+        )
+        break
+      }
+    }
+  }
+
   for (const item of equippedItems) {
+    if (!isContextMatch) break
+
     const valRes = validateItem(item, currentLevel, item.verbs[0] || '著', false)
     if (!valRes.valid) {
       isContextMatch = false
       contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
       contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `穿戴衣物不合時宜：阿梅身上穿的「${item.name}」不符合此場合。`, { item: item.name, reason: '' })
       break
+    }
+
+    const colorObj = colorDb[item.color]
+    if (colorObj) {
+      if (limitedColors.includes(item.color)) continue
+      const colorRes = validateColor(colorObj, currentLevel, false)
+      if (!colorRes.valid) {
+        isContextMatch = false
+        contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
+        contextReason = colorRes.reason || ''
+        break
+      }
     }
   }
 
@@ -1200,7 +1368,7 @@ function submitOutfit() {
     let feedbackKey = 'tier_target_and_context_wrong'
     if (tier === 2) {
       feedbackKey = contextReason ? 'tier_context_wrong_default' : 'tier_context_wrong_default'
-      text = contextReason || question.errorPromptItem || question.errorPromptColor || feedbackMessage('tier_context_wrong_default', '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！')
+      text = contextReason || feedbackMessage('tier_context_wrong_default', '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！')
     } else if (tier === 3) {
       feedbackKey = 'tier_target_wrong_context_right'
       text = feedbackMessage('tier_target_wrong_context_right', '你的穿搭非常合適！但要注意：你寫在句子裡的單字，或是模特兒身上穿著的衣物，不是這道題目指定的搭配喔！快去選擇或給娃娃穿上這題指定的衣服吧！')
