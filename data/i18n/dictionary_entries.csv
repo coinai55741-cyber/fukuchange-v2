@@ -13,9 +13,9 @@
 是,item,120,hakka_shirt,hakka_shirt_B.png,,,客家藍衫,傳統客家婦女的經典藍染大襟衫。,藍衫,lamˇ samˊ,藍衫,lam samˋ,藍衫,lamˇ sam+,藍衫,lam samˇ,藍衫,lamˋ samˇ,藍衫,lamˇ samˊ
 是,item,130,swim_cap,head-swin.png,,,泳帽,在游泳池中必須穿的專用配件。,泅水帽仔,qiuˇ suiˋ mo eˋ,泅水帽仔,ciu shuiˊ mo+ er,泅水帽,ciuˇ shui^ moˋ,泅水帽仔,ciu fiˋ moˊ erˋ,泅水帽,siuˋ fi^ hm,泅水帽仔,qiuˇ suiˋ mo eˋ
 是,item,140,swimsuit,swimsuit_B.png,,,泳衣,戲水時穿著的專用服裝。,泅水衫,qiuˇ siuˋ samˊ,V,V,V,V,V,V,V,V,V,V
-是,color,1010,orange,,#f97316,,橘色，像柑橘一樣鮮豔。,,柑仔色,gamˊ eˋ sedˋ,柑仔色,gamˋ er sed,柑色,gam+ sed^,柑色,gamˇ sedˋ,柑子色,gamˇ zu^ sedˊ,柑仔色,gamˊ eˋ sedˋ
+是,color,1010,orange,,#f97316,,橘色，是溫暖活潑的快樂色彩。,,柑仔色,gamˊ eˋ sedˋ,柑仔色,gamˋ er sed,柑色,gam+ sed^,柑色,gamˇ sedˋ,柑子色,gamˇ zu^ sedˊ,柑仔色,gamˊ eˋ sedˋ
 是,color,1020,yellow,,#eab308,,黃色，是金黃燦爛的杭菊色彩。,,黃色,vongˇ sedˋ,黃色,vong sed,黃色,vongˇ sed^,黃色,vong sedˋ,黃色,bbongˋ sedˊ,黃色,vongˇ sedˋ
 是,color,1030,white,,#ffffff,,白色，是如雪般潔白的杭菊色彩。,,白色,pag sedˋ,白色,pagˋ sed,白色,pagˋ sed^,白色,pag sedˋ,白色,pa sedˊ,白色,pag sedˋ
 是,color,1040,black,,#1e293b,,黑色，是沉穩低調的經典色彩。,,烏色,vuˊ sedˋ,烏色,vuˋ sed,烏色,vu+ sed^,烏色,vuˇ sedˋ,烏色,bbuˇ sedˊ,烏色,vuˊ sedˋ
 是,color,1050,purple,,#542480,,紫色，是高貴浪漫的迷人色彩。,,吊菜色,diau coi sedˋ,吊菜色,diauˇ coiˇ sed,吊菜色,diauˋ coiˋ sed^,茄色,kiau sedˋ,茄色,kioˋ sedˊ,吊菜色,diau coi sedˋ
-是,color,1060,red_flower_pattern,hakka_pattern.png,#ec4899,是,花布，充滿熱情喜慶與傳統風情的花色，,,花布色,faˊ bu sedˋ,V,V,V,V,V,V,V,V,V,V
+是,color,1060,red_flower_pattern,hakka_pattern.png,#ec4899,是,花布，充滿熱情喜慶與傳統風情的花色。,,花布色,faˊ bu sedˋ,V,V,V,V,V,V,V,V,V,V
