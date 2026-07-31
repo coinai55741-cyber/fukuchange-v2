@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
-import { getDictionaryItems } from './dictionaryData'
+import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
@@ -239,26 +239,26 @@ const filteredDictionaryItems = computed(() => {
   return dictionaryItems.value.filter((item) => `${item.name} ${item.pinyin} ${item.translation} ${item.description}`.toLowerCase().includes(query))
 })
 
-const hakkaBadgeText = computed(() => {
-  const question = currentQuestion.value
-  if (!question) return ''
-  const hasColor = Boolean(question.color)
-  const usePinyinForColor = isPinyinQuestion.value && hasColor && pinyinField.value === 'color'
-  const usePinyinForItem = isPinyinQuestion.value && (!hasColor || pinyinField.value === 'item')
+const showFallbackNotice = ref(true)
 
-  const color = question.color ? localizedQuestionTerm(question.color, usePinyinForColor) : ''
-  const item = localizedQuestionTerm(question.item, usePinyinForItem)
-  const phrase = color ? `${color}个${item}` : item
-  return `${question.verb ?? '著'}${phrase}`
+const hakkaSentenceInfo = computed(() => {
+  const question = currentQuestion.value
+  if (!question) return { badgeText: '', fullText: '', effectiveDialect: selectedDialect.value, isFallback: false }
+  return getHakkaSentenceComponents(
+    question.item,
+    question.color,
+    question.context,
+    selectedDialect.value,
+    isPinyinQuestion.value,
+    pinyinField.value
+  )
 })
 
+const hakkaBadgeText = computed(() => hakkaSentenceInfo.value.badgeText)
 const questionDescriptionText = computed(() => currentQuestion.value?.context.replace(/^，/, '') ?? '')
+const questionText = computed(() => hakkaSentenceInfo.value.fullText)
+const isCurrentDialectFallback = computed(() => SHOW_FALLBACK_NOTICE && hakkaSentenceInfo.value.isFallback)
 
-const questionText = computed(() => {
-  const question = currentQuestion.value
-  if (!question) return ''
-  return `${hakkaBadgeText.value}${question.context}`
-})
 
 const seasonWeatherLabel = computed(() => {
   const tags = currentQuestion.value?.tags ?? []
@@ -1572,7 +1572,16 @@ onBeforeUnmount(() => {
         </div>
         <strong>⏱ {{ formatTime(elapsedMs) }}</strong>
       </header>
-      <aside class="mission-card" tabindex="0" :aria-label="`第 ${questionIndex + 1} 題，第 ${phase} 階段。${seasonWeatherLabel}。題目：${hakkaBadgeText}。${questionDescriptionText}`"><span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span><h2>{{ seasonWeatherLabel }}</h2><div class="question-badge">{{ hakkaBadgeText }}</div><p class="question-description">{{ questionDescriptionText }}</p></aside>
+      <aside class="mission-card" tabindex="0" :aria-label="`第 ${questionIndex + 1} 題，第 ${phase} 階段。${seasonWeatherLabel}。題目：${hakkaBadgeText}。${questionDescriptionText}`">
+        <span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span>
+        <h2>{{ seasonWeatherLabel }}</h2>
+        <div v-if="isCurrentDialectFallback && showFallbackNotice" class="dialect-fallback-notice" role="status">
+          <span>⚠️ 饒平腔／詔安腔內容校對中，現標示為四縣腔內容</span>
+          <button class="fallback-notice-close" type="button" aria-label="關閉提示" @click="showFallbackNotice = false">×</button>
+        </div>
+        <div class="question-badge">{{ hakkaBadgeText }}</div>
+        <p class="question-description">{{ questionDescriptionText }}</p>
+      </aside>
       <section class="avatar-zone"><nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav><SpineAvatar ref="avatarRef" :outfit="selected" /></section>
       <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :id="`clothing-card-${card.id}`" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)" @keydown="handleClothingCardKeydown($event, card.id)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
