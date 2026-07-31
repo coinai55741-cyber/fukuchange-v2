@@ -5,9 +5,13 @@ import { leaderboardService, type LeaderboardResponse } from './leaderboardServi
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
 import LottieEmoji from './LottieEmoji.vue'
+import successEmojiData from '../public/emojis/success_1f604.json'
+import failureEmojiData from '../public/emojis/failure_1f62b.json'
+import hotEmojiData from '../public/emojis/hot_1f975.json'
+import coldEmojiData from '../public/emojis/cold_1f976.json'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
-type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean; emojiSrc?: string } | null
+type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean; emojiData?: any } | null
 type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
 type QuestionReview = {
   id: string
@@ -1183,17 +1187,17 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   return null
 }
 
-function getFeedbackEmojiSrc(key: string, text: string): string {
+function getFeedbackEmojiData(key: string, text: string): any {
   if (key === 'tier_success') {
-    return publicAssetUrl('emojis/success_1f604.json')
+    return successEmojiData
   }
-  if (key === 'hot_with_warm_clothing' || key === 'hot_with_warm_item' || text.includes('汗流浹背') || text.includes('天氣熱') || text.includes('屬熱') || text.includes('悶熱') || text.includes('太熱')) {
-    return publicAssetUrl('emojis/hot_1f975.json')
+  if (key === 'hot_with_warm_clothing' || key === 'hot_with_warm_item' || text.includes('汗流浹背') || text.includes('天氣熱') || text.includes('屬熱') || text.includes('氣候不符') || text.includes('悶熱') || text.includes('太熱')) {
+    return hotEmojiData
   }
   if (key === 'cold_with_summer_clothing' || key === 'cool_with_warm_item' || text.includes('瑟瑟發抖') || text.includes('冷風吹') || text.includes('著涼') || text.includes('太冷')) {
-    return publicAssetUrl('emojis/cold_1f976.json')
+    return coldEmojiData
   }
-  return publicAssetUrl('emojis/failure_1f62b.json')
+  return failureEmojiData
 }
 
 function submitOutfit() {
@@ -1204,7 +1208,7 @@ function submitOutfit() {
   if (!decency.complete) {
     playSound('false')
     const text = feedbackMessage('missing_required_outfit', '出門前記得上衣、下衣、鞋子都要穿好喲！')
-    feedback.value = { kind: 'error', text, emojiSrc: getFeedbackEmojiSrc('missing_required_outfit', text) }
+    feedback.value = { kind: 'error', text, emojiData: getFeedbackEmojiData('missing_required_outfit', text) }
     return
   }
 
@@ -1215,7 +1219,7 @@ function submitOutfit() {
   if (!equippedTargetItem) {
     playSound('false')
     const text = feedbackMessage('missing_target_item', '⚠️ 請先穿上適合該題目的衣物或配件！')
-    feedback.value = { kind: 'error', text, emojiSrc: getFeedbackEmojiSrc('missing_target_item', text) }
+    feedback.value = { kind: 'error', text, emojiData: getFeedbackEmojiData('missing_target_item', text) }
     return
   }
 
@@ -1416,7 +1420,7 @@ function submitOutfit() {
     const successText = feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！')
     if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText, true)
     playSound('next')
-    feedback.value = { kind: 'success', canAdvance: true, text: successText, emojiSrc: getFeedbackEmojiSrc('tier_success', successText) }
+    feedback.value = { kind: 'success', canAdvance: true, text: successText, emojiData: getFeedbackEmojiData('tier_success', successText) }
   } else {
     playSound('false')
     let text = ''
@@ -1432,7 +1436,7 @@ function submitOutfit() {
       text = feedbackMessage('tier_target_and_context_wrong', '再想一下！阿梅的穿搭不符合題目和當下的情境要求喔。')
     }
     if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text, isTargetMatch, contextMistakes)
-    feedback.value = { kind: 'error', canAdvance: true, text }
+    feedback.value = { kind: 'error', canAdvance: true, text, emojiData: getFeedbackEmojiData(feedbackKey, text) }
   }
 }
 
@@ -1640,9 +1644,9 @@ onBeforeUnmount(() => {
       <section class="avatar-zone">
         <nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav>
         <SpineAvatar ref="avatarRef" :outfit="selected" />
-        <aside v-if="feedback && feedback.emojiSrc" class="avatar-emoji-bubble" role="status" aria-label="角色心情表情">
+        <aside v-if="feedback && feedback.emojiData" class="avatar-emoji-bubble" role="status" aria-label="角色心情表情">
           <div class="emoji-bubble-card">
-            <LottieEmoji :src="feedback.emojiSrc" :size="84" />
+            <LottieEmoji :animationData="feedback.emojiData" :size="84" />
           </div>
           <div class="emoji-bubble-tail"></div>
         </aside>
@@ -1651,6 +1655,7 @@ onBeforeUnmount(() => {
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
+          <LottieEmoji v-if="feedback.emojiData" :animationData="feedback.emojiData" :size="68" />
           <p>{{ feedback.text }}</p>
           <button v-if="feedback.canAdvance" class="primary" type="button" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button>
         </div>

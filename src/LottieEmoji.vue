@@ -3,7 +3,8 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import lottie, { type AnimationItem } from 'lottie-web'
 
 const props = defineProps<{
-  src: string
+  animationData?: any
+  src?: string
   size?: number
 }>()
 
@@ -15,24 +16,34 @@ function loadAnimation() {
     anim.destroy()
     anim = null
   }
-  if (!containerRef.value || !props.src) return
+  if (!containerRef.value) return
 
-  anim = lottie.loadAnimation({
-    container: containerRef.value,
-    renderer: 'svg',
-    loop: true,
-    autoplay: true,
-    path: props.src
-  })
+  if (props.animationData) {
+    anim = lottie.loadAnimation({
+      container: containerRef.value,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: props.animationData
+    })
+  } else if (props.src) {
+    anim = lottie.loadAnimation({
+      container: containerRef.value,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: props.src
+    })
+  }
 }
 
 onMounted(() => {
   loadAnimation()
 })
 
-watch(() => props.src, () => {
+watch(() => [props.animationData, props.src], () => {
   loadAnimation()
-})
+}, { deep: true })
 
 onBeforeUnmount(() => {
   if (anim) {
@@ -55,7 +66,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 0.25rem;
+  margin: 0 auto;
   overflow: hidden;
   pointer-events: none;
 }
