@@ -1052,7 +1052,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
   if (item.type === 'rain') {
     const isCleaning = currentLevel.occasions.includes('打掃') || currentLevel.colorThemes.includes('打掃')
     if (!currentLevel.isRaining && !isCleaning) {
-      return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `「水靴筒」並非此場景穿戴物喔！`) }
+      return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `「${item.name}」並非此場景穿戴物喔！`, { item: item.name }) }
     }
   } else if (item.type === 'water') {
     const isWaterLevel = currentLevel.occasions.includes('水上') || currentLevel.allowedItems?.includes('泅水帽') || currentLevel.allowedItems?.includes('泅水衫')
@@ -1144,7 +1144,7 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (itemName === '水靴筒' && !currentLevel.isRaining && !contextText.includes('雨') && !isCleaning) {
     return {
       type: 'equipment-mismatch',
-      reason: feedbackMessage('rain_boot_context_mismatch', `情境不協調：非下雨或打掃情境搭配雨鞋「水靴筒」不合語意。`)
+      reason: feedbackMessage('rain_boot_context_mismatch', `情境不協調：非下雨或打掃情境搭配雨鞋「${itemName}」不合語意。`, { item: itemName })
     }
   }
 
