@@ -1315,7 +1315,7 @@ function submitOutfit() {
   if (seasonalWeather === '熱' && warmClothing.length > 0) {
     isContextMatch = false
     contextMistakes = warmClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-    contextReason = feedbackMessage('hot_with_warm_clothing', '太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！')
+    contextReason = feedbackMessage('hot_with_warm_clothing', '阿梅汗流浹背！大熱天穿厚重的衣物實在太悶熱了，快幫阿梅換上舒適輕便的衣物吧！')
   }
 
   const coldItems = ['短衫', '短褲', '裙']
@@ -1323,7 +1323,23 @@ function submitOutfit() {
   if (seasonalWeather === '冷' && coldClothing.length > 0) {
     isContextMatch = false
     contextMistakes = coldClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-    contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～小主人在瑟瑟發抖！你雖然寫對了客語單字，但是冬天穿短袖短褲會著涼喔！快幫模特兒換成防寒的羽絨衫或長褲吧！')
+    contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～阿梅在瑟瑟發抖！你雖然符合題目要求，但是冬天穿短袖、短褲等衣物會著涼喔！快幫阿梅換成防寒的衣物吧！')
+  }
+
+  // Special wedding banquet rules for all-white / all-black outfits
+  const isWeddingBanquet = question.context.includes('婚宴') || question.context.includes('婚禮') || currentLevel.occasions.includes('喜慶')
+  if (isContextMatch && isWeddingBanquet && equippedItems.length > 0) {
+    const isAllWhite = equippedItems.every(i => isSameColor(i.color, '白色'))
+    const isAllBlack = equippedItems.every(i => isSameColor(i.color, '烏色'))
+    if (isAllWhite) {
+      isContextMatch = false
+      contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage('wedding_all_white', '「哇～全白是新娘子的專屬顏色喔！我們換個顏色，不要搶了新娘的風采～」')
+    } else if (isAllBlack) {
+      isContextMatch = false
+      contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage('wedding_all_black', '「喜宴是開心的場合，穿得太黑在傳統習俗裡比較不吉利，換件活潑一點的衣服吧！」')
+    }
   }
 
   // Semantic conflicts from the CSV
@@ -1371,10 +1387,10 @@ function submitOutfit() {
       text = contextReason || feedbackMessage('tier_context_wrong_default', '穿戴有些不符合當下天氣與場景喔，再檢查一下吧！')
     } else if (tier === 3) {
       feedbackKey = 'tier_target_wrong_context_right'
-      text = feedbackMessage('tier_target_wrong_context_right', '你的穿搭非常合適！但要注意：你寫在句子裡的單字，或是模特兒身上穿著的衣物，不是這道題目指定的搭配喔！快去選擇或給娃娃穿上這題指定的衣服吧！')
+      text = feedbackMessage('tier_target_wrong_context_right', '注意：阿梅的穿搭，不是這道題目指定的搭配喔！')
     } else {
       feedbackKey = 'tier_target_and_context_wrong'
-      text = feedbackMessage('tier_target_and_context_wrong', '再想一下！句子中的空格填寫不正確，且模特兒的穿戴也完全不符合當下的情境要求喔。')
+      text = feedbackMessage('tier_target_and_context_wrong', '再想一下！阿梅的穿搭不符合題目和當下的情境要求喔。')
     }
     if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text, isTargetMatch, contextMistakes)
     feedback.value = { kind: 'error', canAdvance: true, text }
