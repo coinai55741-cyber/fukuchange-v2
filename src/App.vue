@@ -412,7 +412,7 @@ function preferredDistractorsForQuestion(question: Question | undefined, tab: Cl
     return shuffle(inTab.filter((item) => item.id.startsWith('swim-cap-') && item.colorKey !== 'yellow' && !requiredIds.has(item.id)))
   }
 
-  if (tab === 'accessories' && asksScarf && !question.color) {
+  if (tab === 'accessories' && asksScarf) {
     return shuffle(inTab.filter((item) => (item.id.startsWith('scarf-') || item.id === 'neck-white') && !requiredIds.has(item.id)))
   }
 

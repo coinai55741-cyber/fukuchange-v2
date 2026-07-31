@@ -179,6 +179,12 @@ const rainBootDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
   ...dyeColors,
 ]
 
+const fullDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
+  { name: '烏色', key: 'black' },
+  { name: '黃色', key: 'yellow' },
+  ...dyeColors,
+]
+
 function makeDyeVariants(prefix: string, name: string, slot: Slot, tab: ClosetTab, image: string, colors = dyeColors) {
   return colors.map((color) => makeClothing(`${prefix}-${color.key}`, name, color.name, color.key, slot, tab, image))
 }
@@ -196,7 +202,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png'),
   ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', rainBootDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
-  ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png'),
+  ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png', fullDyeColors),
   ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),
   ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png'),
 ].filter((item) => {
