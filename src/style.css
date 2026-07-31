@@ -2849,23 +2849,36 @@
   position: relative !important;
   background: #ffffff !important;
   border: 4px solid #67402d !important;
-  border-radius: 36px !important;
-  padding: 10px 14px !important;
+  border-radius: 28px !important;
+  padding: 8px 12px !important;
   box-shadow: 0 8px 24px rgba(83, 52, 34, 0.28) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-.emoji-bubble-tail {
+/* Outer Tail Border (Brown) */
+.emoji-bubble-card::before {
+  content: "" !important;
+  position: absolute !important;
+  bottom: -18px !important;
+  left: 20px !important;
   width: 0 !important;
   height: 0 !important;
   border-top: 18px solid #67402d !important;
-  border-left: 12px solid transparent !important;
-  border-right: 12px solid transparent !important;
-  margin-top: -3px !important;
-  margin-left: 24px !important;
-  transform: rotate(-15deg) !important;
+  border-right: 18px solid transparent !important;
+}
+
+/* Inner Tail Fill (White) */
+.emoji-bubble-card::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: -11px !important;
+  left: 24px !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-top: 13px solid #ffffff !important;
+  border-right: 13px solid transparent !important;
 }
 
 @keyframes avatarBubblePop {
@@ -2891,7 +2904,17 @@
   .emoji-bubble-card {
     padding: 6px 10px !important;
     border-width: 3.5px !important;
-    border-radius: 28px !important;
+    border-radius: 24px !important;
+  }
+  .emoji-bubble-card::before {
+    bottom: -15px !important;
+    border-top-width: 15px !important;
+    border-right-width: 15px !important;
+  }
+  .emoji-bubble-card::after {
+    bottom: -9px !important;
+    border-top-width: 11px !important;
+    border-right-width: 11px !important;
   }
 }
 
