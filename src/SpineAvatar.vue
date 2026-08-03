@@ -93,8 +93,9 @@ function capture() {
 defineExpose({ capture })
 
 function publicAssetUrl(file: string) {
-  return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}`
+  return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}?v=20260803`
 }
+
 
 function tintItem(itemId: string) {
   const item = clothingById.get(itemId)
