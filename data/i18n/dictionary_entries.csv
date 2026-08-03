@@ -1,21 +1,21 @@
 啟用,類型,排序,資料ID,圖片檔名,色票HEX,是否花布,中文釋義,小知識,四縣客語字,四縣拼音,海陸客語字,海陸拼音,大埔客語字,大埔拼音,饒平客語字,饒平拼音,詔安客語字,詔安拼音,南四縣客語字,南四縣拼音
-是,item,10,short_shirt,shirt.png,,,短袖上衣,透氣清爽的短袖棉質上衣，適合夏日活動。,短袖衫,donˋ qiu samˊ,V,V,V,V,V,V,V,V,V,V
+是,item,10,short_shirt,shirt.png,,,短袖上衣,透氣清爽的短袖棉質上衣，適合夏日活動。,短袖衫,donˋ qiu samˊ,短袖衫,donˊ ciu⁺ samˋ,短袖衫,don^ ciuˋ sam+,V,V,V,V,短袖衫,donˋ qiu samˊ
 是,item,20,long_pants,long_pants_B.png,,,長褲,適合在郊外穿，能遮擋蚊蟲。,長褲,congˇ fu,長褲,chong fuˇ,長褲,chongˇ kuˋ,長褲,chong kuˋ,長褲,chongˋ ku^,長褲,congˇ fu
 是,item,30,shorts,shorts_B.png,,,短褲,運動與高溫天氣的清涼選擇。,短褲,donˋ fu,短褲,donˊ fuˇ,短褲,donˆ kuˋ,短褲,donˋ kuˋ / donˋ fu,短褲,don^ ku^,短褲,donˋ fu
-是,item,40,skirt,skirt_B_over.png,,,裙子,舒適的日常或宴會的優雅打扮。,裙,kiunˇ,裙,kiun,裙,kiunˇ,裙,kiun,裙,kunˋ,裙,kiunˇ
+是,item,40,skirt,skirt_B_over.png,,,裙子,舒適的日常或宴會的優雅打扮，較不防寒。,裙,kiunˇ,裙,kiun,裙,kiunˇ,裙,kiun,裙,kunˋ,裙,kiunˇ
 是,item,50,puffer_jacket,puffer_jacket_B.png,,,羽絨衣,極致防寒的羽絨外套，適合寒冬出門穿搭。,羽絨衫,iˋ iungˇ samˊ,羽絨衫,rhiˊ rhung samˋ,羽絨衫,rhiˆ rhungˇ sam⁺,羽絨衫,rhiˋ rhiung samˇ,羽絨衫,bbuˆ rhungˋ samˇ,羽絨衫,iˋ iungˇ samˊ
-是,item,60,sweater,sweater_B.png,,,毛衣,針織膨線毛衣，觸感溫暖舒適。,膨線衫,pong xien samˊ,膨紗衫,pongˇ saˋ samˋ,膨線衫,pongˋ sienˋ sam+,膨線衫,pongˋ sienˋ samˇ,膨線衫,pong^ sien^ samˇ,膨線衫,pong xien samˊ
+是,item,60,sweater,sweater_B.png,,,毛衣,針織毛衣，觸感溫暖舒適。,膨線衫,pong xien samˊ,膨紗衫,pongˇ saˋ samˋ,膨線衫,pongˋ sienˋ sam+,膨線衫,pongˋ sienˋ samˇ,膨線衫,pong^ sien^ samˇ,膨線衫,pong xien samˊ
 是,item,70,scarf,scarf_B.png,,,圍巾,繞在脖子上的保暖毛織品。,頸圍仔,giangˋ viˇ eˋ,頸纏仔,giangˊ chan er,頸圍,giangˆ vuiˇ,頸圍仔,giangˋ vui erˋ,頸圍,giangˆ bbiˋ,頸圍仔,giangˋ viˇ eˋ
-是,item,80,sneakers,sneakers_B.png,,,鞋子,適合健行等活動的運動鞋。,鞋,haiˇ,鞋,hai,鞋,heˇ,鞋,he,鞋,heˋ,鞋,haiˇ
-是,item,90,rain_boots,rain_boots_B.png,,,雨鞋／雨靴,防水防泥的橡膠中筒雨靴。,水靴筒,suiˋ hioˊ tungˇ,水靴筒,shuiˊ hioˋ tung,水靴筒,shui^ hio+ tungˇ,水靴筒,fiˋ hioˇ tung,水鞋笐,suiˋ heˋ gongˋ,水靴筒,suiˋ hioˊ tungˇ
+是,item,80,sneakers,sneakers_B.png,,,鞋子,適合健行、外出等活動的鞋子。,鞋,haiˇ,鞋,hai,鞋,heˇ,鞋,he,鞋,heˋ,鞋,haiˇ
+是,item,90,rain_boots,rain_boots_B.png,,,雨鞋／雨靴,防水防泥的橡膠中筒雨靴。,水靴筒,suiˋ hioˊ tungˇ,水靴筒,shuiˊ hioˋ tung,水靴,shui^ hioˊ ,水靴筒,fiˋ hioˇ tung,水鞋笐,suiˋ heˋ gongˋ,水靴筒,suiˋ hioˊ tungˇ
 是,item,100,hat,hat.png,,,帽子,遮太陽的帽子。,帽仔,mo eˋ,帽仔,mo+ er,帽,moˋ,帽仔,moˊ erˋ,帽,hm,帽仔,mo eˋ
 是,item,110,knee_protector,knee_protector_B.png,,,護膝,溜直排輪時套在膝蓋上的防磨防撞護具。,膝頭落仔,qidˋ teuˇ labˋ eˋ,膝頭落仔,cid teu lab er,膝頭落,cid^ teuˇ lab^,膝頭落仔,cidˋ teu labˋ erˋ,護膝,fu cidˊ,膝頭落仔,qidˋ teuˇ labˋ eˋ
-是,item,120,hakka_shirt,hakka_shirt_B.png,,,客家藍衫,傳統客家婦女的經典藍染大襟衫。,藍衫,lamˇ samˊ,藍衫,lam samˋ,藍衫,lamˇ sam+,藍衫,lam samˇ,藍衫,lamˋ samˇ,藍衫,lamˇ samˊ
+是,item,120,hakka_shirt,hakka_shirt_B.png,,,藍衫,傳統客家女孩的經典藍染大襟。,藍衫,lamˇ samˊ,藍衫,lam samˋ,藍衫,lamˇ sam+,藍衫,lam samˇ,藍衫,lamˋ samˇ,藍衫,lamˇ samˊ
 是,item,130,swim_cap,head-swin.png,,,泳帽,在游泳池中必須穿的專用配件。,泅水帽仔,qiuˇ suiˋ mo eˋ,泅水帽仔,ciu shuiˊ mo+ er,泅水帽,ciuˇ shui^ moˋ,泅水帽仔,ciu fiˋ moˊ erˋ,泅水帽,siuˋ fi^ hm,泅水帽仔,qiuˇ suiˋ mo eˋ
-是,item,140,swimsuit,swimsuit_B.png,,,泳衣,戲水時穿著的專用服裝。,泅水衫,qiuˇ siuˋ samˊ,V,V,V,V,V,V,V,V,V,V
-是,color,1010,orange,,#f97316,,橘色，是溫暖活潑的快樂色彩。,,柑仔色,gamˊ eˋ sedˋ,柑仔色,gamˋ er sed,柑色,gam+ sed^,柑色,gamˇ sedˋ,柑子色,gamˇ zu^ sedˊ,柑仔色,gamˊ eˋ sedˋ
+是,item,140,swimsuit,swimsuit_B.png,,,泳衣,戲水時穿著的專用服裝。,泅水衫,qiuˇ siuˋ samˊ,泅水衫,ciu shuiˊ samˋ,泅水衫,ciuˇ shiu^ sam+,V,V,V,V,泅水衫,qiuˇ suiˋ samˊ
+是,color,1010,orange,,#f97316,,橘色，是溫暖活潑的快樂色彩。,,柑仔色,gamˊ eˋ sedˋ,柑色,gamˋ sed,柑色,gam+ sed^,柑色,gamˇ sedˋ,柑子色,gamˇ zu^ sedˊ,柑仔色,gamˊ eˋ sedˋ
 是,color,1020,yellow,,#eab308,,黃色，是金黃燦爛的杭菊色彩。,,黃色,vongˇ sedˋ,黃色,vong sed,黃色,vongˇ sed^,黃色,vong sedˋ,黃色,bbongˋ sedˊ,黃色,vongˇ sedˋ
 是,color,1030,white,,#ffffff,,白色，是如雪般潔白的杭菊色彩。,,白色,pag sedˋ,白色,pagˋ sed,白色,pagˋ sed^,白色,pag sedˋ,白色,pa sedˊ,白色,pag sedˋ
 是,color,1040,black,,#1e293b,,黑色，是沉穩低調的經典色彩。,,烏色,vuˊ sedˋ,烏色,vuˋ sed,烏色,vu+ sed^,烏色,vuˇ sedˋ,烏色,bbuˇ sedˊ,烏色,vuˊ sedˋ
 是,color,1050,purple,,#542480,,紫色，是高貴浪漫的迷人色彩。,,吊菜色,diau coi sedˋ,吊菜色,diauˇ coiˇ sed,吊菜色,diauˋ coiˋ sed^,茄色,kiau sedˋ,茄色,kioˋ sedˊ,吊菜色,diau coi sedˋ
-是,color,1060,red_flower_pattern,hakka_pattern.png,#ec4899,是,花布，充滿熱情喜慶與傳統風情的花色。,,花布色,faˊ bu sedˋ,V,V,V,V,V,V,V,V,V,V
+是,color,1060,red_flower_pattern,hakka_pattern.png,#ec4899,是,花布，充滿熱情喜慶與傳統風情的花色。,,花布色,faˊ bu sedˋ,花布,faˋ buˇ,花色,fa+  sed^ ,V,V,V,V,花布仔,faˊ bu eˋ
