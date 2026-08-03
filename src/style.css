@@ -2896,27 +2896,20 @@
   }
 }
 
+.feedback-emoji-container {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-top: 0.15rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
 @media (max-width: 900px) {
   .avatar-emoji-bubble {
-    top: 2% !important;
-    right: 8% !important;
-  }
-  .emoji-bubble-card {
-    padding: 6px 10px !important;
-    border-width: 3.5px !important;
-    border-radius: 24px !important;
-  }
-  .emoji-bubble-card::before {
-    bottom: -15px !important;
-    border-top-width: 15px !important;
-    border-right-width: 15px !important;
-  }
-  .emoji-bubble-card::after {
-    bottom: -9px !important;
-    border-top-width: 11px !important;
-    border-right-width: 11px !important;
+    display: none !important;
   }
 }
+
 
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
