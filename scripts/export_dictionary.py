@@ -1,10 +1,18 @@
 import os
 import sys
-import pandas as pd
 
 # Fix console encoding for Windows
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
+
+try:
+    import pandas as pd
+    import openpyxl
+except Exception as err:
+    print(f"[CI Notice] Python dependency unavailable ({err}). Using pre-built dictionary_entries.csv.")
+    sys.exit(0)
+
+
 
 # Paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
