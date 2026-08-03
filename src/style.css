@@ -2897,18 +2897,22 @@
 }
 
 .feedback-emoji-container {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  margin-top: 0.15rem !important;
-  margin-bottom: 0.5rem !important;
+  display: none !important;
 }
 
 @media (max-width: 900px) {
   .avatar-emoji-bubble {
     display: none !important;
   }
+  .feedback-emoji-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-top: 0.15rem !important;
+    margin-bottom: 0.5rem !important;
+  }
 }
+
 
 
 /* Reduced motion accessibility */
