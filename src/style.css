@@ -2819,12 +2819,44 @@
   color: #70645a;
 }
 .feedback {
+  position: relative !important;
   padding-left: 1.25rem !important;
-  padding-right: 1.25rem !important;
+  padding-right: 3.1rem !important;
+  padding-top: 1.65rem !important;
 }
 .feedback p {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.feedback-close {
+  position: absolute !important;
+  top: .55rem !important;
+  right: .65rem !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: 3 !important;
+}
+@media (min-width: 901px) {
+  .feedback-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .feedback {
+    position: absolute !important;
+    z-index: 5 !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 5% !important;
+    width: min(620px, 52vw) !important;
+    min-width: 360px !important;
+    transform: translateX(-50%) !important;
+  }
 }
 .dictionary-header-actions select:focus-visible {
   outline: 3px solid #1d4ed8;
@@ -3199,7 +3231,7 @@
 }
 
 .tutorial-overlay {
-  background: rgba(0, 0, 0, 0.58);
+  background: transparent;
   color: #4c3820;
 }
 
@@ -3207,81 +3239,127 @@
   position: fixed;
   z-index: 81;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48), 0 0 0 3px #ffeaa0, 0 0 22px rgba(255, 234, 160, 0.95);
+  background: transparent;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48), 0 0 0 3px #ffeaa0, 0 0 24px rgba(255, 234, 160, 0.98);
   pointer-events: none;
   transition: left .22s ease, top .22s ease, width .22s ease, height .22s ease;
 }
 
-.tutorial-card {
+.tutorial-demo-feedback {
   position: fixed;
   z-index: 82;
   left: 50%;
-  bottom: 7.5vh;
-  width: min(440px, calc(100vw - 42px));
+  bottom: 13vh;
+  width: min(460px, calc(100vw - 36px));
   transform: translateX(-50%);
-  padding: 1rem 1.15rem;
+  padding: 1.05rem 3.05rem 1rem 1.1rem;
   border-radius: 18px;
   background: rgba(255, 253, 248, 0.96);
-  border: 2px solid #ffe08a;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+  border: 3px solid #f3a37f;
+  color: #4f3a2b;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
 }
 
-.tutorial-card span {
+.tutorial-demo-feedback.success {
+  border-color: #60bd72;
+}
+
+.tutorial-demo-feedback span {
   display: inline-block;
-  margin-bottom: .35rem;
+  margin-bottom: .2rem;
   color: #b47720;
   font-size: .78rem;
   font-weight: 900;
 }
 
+.tutorial-demo-emoji {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 74px;
+  margin: .1rem 0 .18rem;
+}
+
+.tutorial-demo-feedback p {
+  margin: 0 auto .7rem;
+  max-width: 34em;
+  font-size: .98rem;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.tutorial-demo-feedback .primary {
+  min-width: 104px;
+}
+
+.tutorial-demo-close {
+  position: absolute;
+  top: .62rem;
+  right: .72rem;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #ece5dc;
+  color: #846853;
+  font-size: 1.3rem;
+  font-weight: 900;
+  z-index: 2;
+}
+
+.tutorial-card {
+  position: fixed;
+  z-index: 82;
+  right: 1.25rem;
+  bottom: 1.15rem;
+  width: min(360px, calc(100vw - 32px));
+  padding: .9rem 1rem .72rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 26px rgba(111, 77, 34, 0.18);
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.tutorial-card span {
+  display: inline-block;
+  margin-bottom: .28rem;
+  color: #b47720;
+  font-size: .74rem;
+  font-weight: 900;
+}
+
 .tutorial-card h2 {
-  margin: 0 0 .35rem;
+  margin: 0 0 .28rem;
   color: #185f80;
-  font-size: 1.25rem;
+  font-size: 1.08rem;
 }
 
 .tutorial-card p {
-  margin: 0 0 .85rem;
+  margin: 0 0 .55rem;
   color: #56463d;
   font-weight: 800;
-  line-height: 1.55;
+  line-height: 1.48;
 }
 
-.tutorial-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: .55rem;
-}
-
-.tutorial-actions button {
-  min-width: 110px;
-}
-
-.tutorial-skip-link {
-  position: fixed;
-  z-index: 82;
-  top: 5.5rem;
-  right: 2rem;
-  padding: .55rem .9rem;
-  border-radius: 999px;
-  background: rgba(255, 253, 248, 0.92);
-  color: #79501d;
-  font-weight: 900;
-}
-
-.tutorial-continue-hint {
-  position: fixed;
-  z-index: 82;
-  right: 1.5rem;
-  bottom: 1.1rem;
-  margin: 0;
-  padding: .45rem .75rem;
-  border-radius: 10px;
-  background: rgba(255, 253, 248, 0.9);
+.tutorial-inline-skip {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  padding: .2rem 0;
+  border: 0;
+  background: transparent;
   color: #185f80;
-  font-size: .85rem;
+  font-size: .78rem;
   font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 .countdown-overlay {
@@ -3293,14 +3371,22 @@
 .countdown-overlay strong {
   display: grid;
   place-items: center;
-  width: min(26vw, 180px);
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: rgba(255, 253, 248, 0.96);
-  color: #e8a91f;
+  color: #fff8d8;
   font-size: clamp(4rem, 11vw, 8rem);
   font-weight: 1000;
-  box-shadow: 0 0 0 7px rgba(255, 224, 138, 0.75), 0 16px 42px rgba(0, 0, 0, 0.24);
+  line-height: 1;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 -6px 0 #e8a91f,
+    6px 0 0 #e8a91f,
+    0 6px 0 #e8a91f,
+    -6px 0 0 #e8a91f,
+    4px 4px 0 #e8a91f,
+    -4px 4px 0 #e8a91f,
+    4px -4px 0 #e8a91f,
+    -4px -4px 0 #e8a91f,
+    0 0 18px rgba(255, 234, 160, 0.95),
+    0 12px 26px rgba(0, 0, 0, 0.26);
 }
 
 @media (max-width: 760px) {
@@ -3309,37 +3395,50 @@
   }
 
   .tutorial-card {
-    bottom: 9vh;
-    width: min(420px, calc(100vw - 24px));
-    padding: .85rem .95rem;
+    right: .72rem;
+    bottom: .72rem;
+    width: min(330px, calc(100vw - 20px));
+    padding: .76rem .85rem .6rem;
     border-radius: 14px;
   }
 
   .tutorial-card h2 {
-    font-size: 1.05rem;
+    font-size: .98rem;
   }
 
   .tutorial-card p {
-    font-size: .9rem;
-    line-height: 1.45;
-  }
-
-  .tutorial-actions button {
-    min-width: 92px;
-    padding: .55rem .7rem;
-  }
-
-  .tutorial-skip-link {
-    top: 4.5rem;
-    right: .8rem;
-    padding: .42rem .65rem;
-    font-size: .82rem;
-  }
-
-  .tutorial-continue-hint {
-    right: .75rem;
-    bottom: .65rem;
+    margin-bottom: .38rem;
     font-size: .75rem;
+    line-height: 1.42;
+  }
+
+  .tutorial-inline-skip {
+    font-size: .72rem;
+  }
+
+  .tutorial-demo-feedback {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    width: min(360px, calc(100vw - 24px));
+    transform: translate(-50%, -50%);
+    padding: .85rem 2.75rem .85rem .9rem;
+    border-radius: 14px;
+  }
+
+  .tutorial-demo-feedback p {
+    font-size: .82rem;
+    line-height: 1.42;
+  }
+
+  .tutorial-demo-emoji {
+    min-height: 62px;
+    margin: .05rem 0 .12rem;
+  }
+
+  .tutorial-demo-close {
+    width: 30px;
+    height: 30px;
   }
 }
 

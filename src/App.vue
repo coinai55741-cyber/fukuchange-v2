@@ -78,12 +78,12 @@ let timerStartedAt = 0
 
 const tutorialSteps: TutorialStep[] = [
   { id: 'weather', target: 'weather', title: '查看天氣', text: '先查看今天的天氣與季節，判斷阿梅適合穿涼爽還是保暖的衣服。' },
-  { id: 'question', target: 'question', title: '了解題目要求', text: '了解這題的穿搭情境要求。' },
+  { id: 'question', target: 'question', title: '了解題目要求', text: '先看黃色標籤指定穿什麼，再看下面的情境。' },
   { id: 'closet', target: 'closet', title: '挑選衣物', text: '在阿梅的衣櫃中，挑選合適的穿著。' },
   { id: 'count', target: 'completion', title: '確認穿著數量', text: '這裡會提示本題最低需要完成幾個穿著部位。' },
-  { id: 'submit', target: 'submit', title: '送出搭配', text: '按下送出搭配。' },
-  { id: 'next', target: 'submit', title: '前往下一題', text: '按下一題，就可以繼續挑戰下一關。' },
-  { id: 'retry', target: 'submit', title: '可以重新練習', text: '即使失敗了，也可以按上方 X 關閉提示，重新嘗試搭配呦！第一次送出的結果會記分，重新嘗試只供練習。' },
+  { id: 'submit', target: 'submit', title: '送出搭配', text: '選好衣物後，按下送出搭配查看結果。' },
+  { id: 'next', target: 'demo-feedback', title: '答對時', text: '按下一題，繼續挑戰。' },
+  { id: 'retry', target: 'demo-feedback', title: '答錯時', text: '注意：只有第一次送出的結果會計分呦！' },
 ]
 
 function rememberFocus() {
@@ -102,6 +102,25 @@ async function focusDialog(dialogRef: { value: HTMLElement | null }) {
 }
 
 const currentTutorialStep = computed(() => tutorialSteps[tutorialStep.value])
+const tutorialDemoFeedback = computed(() => {
+  if (currentTutorialStep.value?.id === 'next') {
+    return {
+      kind: 'success',
+      title: '教學提示框',
+      text: '完成正確，穿搭完全符合題目',
+      emojiData: successEmojiData
+    }
+  }
+  if (currentTutorialStep.value?.id === 'retry') {
+    return {
+      kind: 'error',
+      title: '教學提示框',
+      text: '可以按「X」關閉後重新練習，或是前往下一題。',
+      emojiData: failureEmojiData
+    }
+  }
+  return null
+})
 const tutorialHighlightStyle = computed(() => {
   const rect = tutorialTargetRect.value
   if (!rect) return {}
@@ -152,7 +171,7 @@ const dialects: { id: Dialect; label: string; hasVerifiedVocabulary: boolean }[]
 const introScenes = [
   { tag: 'intro_01_ready', speaker: '阿梅', text: '哇！我已經準備好出發囉！', mood: 'happy', image: 'S2_m1_ame1.png' },
   { tag: 'intro_02_mom_warning', speaker: '媽媽', text: '阿梅！等一下，你確定要穿這樣出門嗎？看準天氣和場合，穿得舒服又體面，才不會變成災難焦點喔！', mood: 'surprised', image: 'S2_m1_mom1.png' },
-  { tag: 'intro_03_wrong_examples', speaker: '阿梅', text: '哎呀！如果穿錯衣服或選錯顏色，可就太尷尬了！造型師快來幫幫忙吧！', mood: 'worried', image: 'S2_m1_ame2.png' },
+  { tag: 'intro_03_wrong_examples', speaker: '阿梅', text: '哎呀！如果穿錯衣服或選錯顏色，可就太尷尬了！穿搭師快來幫幫忙吧！', mood: 'worried', image: 'S2_m1_ame2.png' },
 ]
 
 const bodySlotControls: { slot: Slot; label: string; tab: ClosetTab }[] = [
@@ -271,6 +290,19 @@ function localizedVocabularyName(value: string) {
   const entry = dictionaryEntryForTerm(value)
   if (!entry?.name) return value
   return entry.name
+}
+
+function localizedVocabularyListText(values: string[], separator = ' 或 ') {
+  return values.map(value => localizedVocabularyName(value)).join(separator)
+}
+
+function localizedVocabularyJoinedText(value: string) {
+  return value
+    .split(/\s*(?:或|、|,)\s*/)
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => localizedVocabularyName(item))
+    .join(' 或 ')
 }
 
 function localizedVocabularyPinyin(value: string) {
@@ -993,7 +1025,11 @@ const colorDb: Record<string, ColorData> = {
 function feedbackMessage(key: string, fallback: string, replacements: Record<string, string> = {}) {
   const template = feedbackMessages[key] || fallback
   return Object.entries(replacements).reduce((text, [name, value]) => {
-    const replacement = name === 'color' || name === 'item' ? localizedVocabularyName(value) : value
+    const replacement = name === 'color' || name === 'item'
+      ? localizedVocabularyName(value)
+      : name === 'allowedItems' || name === 'allowedColors' || name === 'items' || name === 'colors'
+        ? localizedVocabularyJoinedText(value)
+        : value
     return text.split(`{${name}}`).join(replacement)
   }, template)
 }
@@ -1157,7 +1193,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
   }
 
   if (currentLevel.weather && !item.weather.includes(currentLevel.weather)) {
-    return { valid: false, reason: feedbackMessage('item_weather_mismatch', `季節氣候不符：題目要求「${currentLevel.weather}」，但「${item.name}」僅適用「${item.weather.join(',')}」天氣。`, { weather: currentLevel.weather, item: item.name, itemWeather: item.weather.join(',') }) }
+    return { valid: false, reason: feedbackMessage('item_weather_mismatch', `「{item}」這件衣物不太適合現在的天氣喔！`, { weather: currentLevel.weather, item: item.name, itemWeather: item.weather.join(',') }) }
   }
 
   for (const occasion of currentLevel.occasions) {
@@ -1165,18 +1201,18 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       continue
     }
     if (item.blacklist.includes(occasion)) {
-      return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `此題目場景為「${occasion}」，但「${item.name}」不符合此場合喔！`, { occasion, item: item.name }) }
+      return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `這個場合比較不適合穿「{item}」喔！`, { occasion, item: item.name }) }
     }
   }
 
   if (isTargetCheck) {
     if (!item.verbs.includes(verb)) {
-      return { valid: false, reason: feedbackMessage('item_verb_mismatch', `動詞搭配錯誤：此處亮出動詞為「${verb}」，但「${item.name}」必須搭配「${item.verbs.join(', ')}」。`, { verb, item: item.name, itemVerbs: item.verbs.join(', ') }) }
+      return { valid: false, reason: feedbackMessage('item_verb_mismatch', `題目指定的說法，和「{item}」不太搭喔！`, { verb, item: item.name, itemVerbs: item.verbs.join(', ') }) }
     }
 
     if (currentLevel.allowedItems && currentLevel.allowedItems.length > 0) {
       if (!currentLevel.allowedItems.includes(item.name)) {
-        return { valid: false, reason: feedbackMessage('item_requirement_mismatch', `題目限制：此題目指定必須搭配衣物為「${currentLevel.allowedItems.join(' 或 ')}」。`, { allowedItems: currentLevel.allowedItems.join(' 或 ') }) }
+        return { valid: false, reason: feedbackMessage('item_requirement_mismatch', `請改穿黃色標籤指定的衣物喔！`, { allowedItems: currentLevel.allowedItems.join(' 或 ') }) }
       }
     }
   }
@@ -1184,7 +1220,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
   if (item.type === 'rain') {
     const isCleaning = currentLevel.occasions.includes('打掃') || currentLevel.colorThemes.includes('打掃')
     if (!currentLevel.isRaining && !isCleaning) {
-      return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `「${item.name}」並非此場景穿戴物喔！`, { item: item.name }) }
+      return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `這個情境比較不需要穿「{item}」喔！`, { item: item.name }) }
     }
   } else if (item.type === 'water') {
     const isWaterLevel = currentLevel.occasions.includes('水上') || currentLevel.allowedItems?.includes('泅水帽') || currentLevel.allowedItems?.includes('泅水衫')
@@ -1200,12 +1236,12 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
   const explicitlyAllowed = currentLevel.allowedColors?.includes(color.name)
 
   if (currentLevel.denyColors?.includes(color.name)) {
-    return { valid: false, reason: feedbackMessage(currentLevel.denyColorFeedbackKey || 'color_occasion_conflict', `顏色搭配衝突：此題不可選擇「${color.name}」。`, { occasion: currentLevel.occasions.join('、'), color: color.name }) }
+    return { valid: false, reason: feedbackMessage(currentLevel.denyColorFeedbackKey || 'color_occasion_conflict', `「{color}」在這個情境有點不合適喔！`, { occasion: currentLevel.occasions.join('、'), color: color.name }) }
   }
 
   if (isTargetCheck && currentLevel.brightness) {
     if (!color.weather.includes(currentLevel.brightness)) {
-      return { valid: false, reason: feedbackMessage('color_brightness_mismatch', `色彩亮度不符：題目要求為「${currentLevel.brightness}」，但「${color.name}」屬於「${color.weather.join(',')}」。`, { brightness: currentLevel.brightness, color: color.name, colorWeather: color.weather.join(',') }) }
+      return { valid: false, reason: feedbackMessage('color_brightness_mismatch', `阿梅的穿搭顏色，和題目指定的不太一樣喔！`, { brightness: currentLevel.brightness, color: color.name, colorWeather: color.weather.join(',') }) }
     }
   }
 
@@ -1218,13 +1254,13 @@ function validateColor(color: ColorData, currentLevel: any, isTargetCheck = fals
   if (isTargetCheck && currentLevel.colorThemes && currentLevel.colorThemes.length > 0) {
     const matchesTheme = currentLevel.colorThemes.some((theme: string) => color.occasions.includes(theme))
     if (!matchesTheme) {
-      return { valid: false, reason: feedbackMessage('color_theme_mismatch', `花色主題不符：此題目要求特色主題「${currentLevel.colorThemes.join(',')}」，而「${color.name}」為「${color.occasions.join(',')}」屬性。`, { colorThemes: currentLevel.colorThemes.join(','), color: color.name, colorOccasions: color.occasions.join(',') }) }
+      return { valid: false, reason: feedbackMessage('color_theme_mismatch', `這題要搭配指定的顏色或花布喔！`, { colorThemes: currentLevel.colorThemes.join(','), color: color.name, colorOccasions: color.occasions.join(',') }) }
     }
   }
 
   if (isTargetCheck && currentLevel.allowedColors && currentLevel.allowedColors.length > 0) {
     if (!currentLevel.allowedColors.includes(color.name)) {
-      return { valid: false, reason: feedbackMessage('color_requirement_mismatch', `題目限制：此題目指定必須搭配顏色為「${currentLevel.allowedColors.join(' 或 ')}」。`, { allowedColors: currentLevel.allowedColors.join(' 或 ') }) }
+      return { valid: false, reason: feedbackMessage('color_requirement_mismatch', `請改選黃色標籤指定的顏色喔！`, { allowedColors: currentLevel.allowedColors.join(' 或 ') }) }
     }
   }
 
@@ -1253,22 +1289,15 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (itemName === '藍衫' && colorName !== 'X' && colorName !== '') {
     return {
       type: 'color-conflict',
-      reason: feedbackMessage('hakka_shirt_color_conflict', `「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。`)
-    }
-  }
-
-  if (itemName === '長褲' && (contextText.includes('籃球') || contextText.includes('籃球時'))) {
-    return {
-      type: 'movement-restriction',
-      reason: feedbackMessage('basketball_long_pants', `語意不協調：打籃球要求手腳靈巧好活動，搭配「長褲」可能限制劇烈跑跳。`)
+      reason: feedbackMessage('hakka_shirt_color_conflict', `藍衫本身就是藍染衣服，不需要再選其他顏色喔！`)
     }
   }
 
   const warmClothing = ['羽絨衫', '膨線衫', '頸圍仔']
-  if (warmClothing.includes(itemName) && (currentLevel.weather === '熱' || contextText.includes('涼爽') || contextText.includes('熱'))) {
+  if (warmClothing.includes(itemName) && (currentLevel.weather === '熱' || contextText.includes('熱'))) {
     return {
       type: 'seasonal-mismatch',
-      reason: feedbackMessage('hot_with_warm_item', `語意不協調：此題為炎熱/涼爽情境，搭配禦寒衣物「${itemName}」不合常理。`, { item: itemName })
+      reason: feedbackMessage('hot_with_warm_item', `天氣熱時穿「{item}」會太悶熱喔！`, { item: itemName })
     }
   }
 
@@ -1276,21 +1305,14 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (itemName === '水靴筒' && !currentLevel.isRaining && !contextText.includes('雨') && !isCleaning) {
     return {
       type: 'equipment-mismatch',
-      reason: feedbackMessage('rain_boot_context_mismatch', `情境不協調：非下雨或打掃情境搭配雨鞋「${itemName}」不合語意。`, { item: itemName })
+      reason: feedbackMessage('rain_boot_context_mismatch', `不是下雨或打掃時，通常不需要穿「{item}」喔！`, { item: itemName })
     }
   }
 
   if ((itemName === '泅水帽' || itemName === '泅水衫') && !currentLevel.occasions.includes('水上') && !contextText.includes('泳')) {
     return {
       type: 'equipment-mismatch',
-      reason: feedbackMessage('water_context_mismatch', `情境不協調：非水上活動情境搭配「泅水帽/泅水衫」不合語意。`, { item: itemName })
-    }
-  }
-
-  if ((itemName === '長褲' || itemName === '鞋') && contextText.includes('涼爽')) {
-    return {
-      type: 'seasonal-mismatch',
-      reason: feedbackMessage('cool_with_warm_item', `語意不協調：此題敘事句強調「涼爽」，搭配「${itemName}」體感溫度較高，較不符合涼爽感。`, { item: itemName })
+      reason: feedbackMessage('water_context_mismatch', `不是游泳或玩水時，通常不需要穿「{item}」喔！`, { item: itemName })
     }
   }
 
@@ -1317,7 +1339,7 @@ function submitOutfit() {
   const decency = checkDressedDecency(question, selected.value)
   if (!decency.complete) {
     playSound('false')
-    const text = feedbackMessage('missing_required_outfit', '出門前記得上衣、下衣、鞋子都要穿好喲！')
+    const text = feedbackMessage('missing_required_outfit', '出門前記得上衣、下身、鞋子都要穿好喲！')
     feedback.value = { kind: 'error', text, emojiData: getFeedbackEmojiData('missing_required_outfit', text) }
     return
   }
@@ -1366,7 +1388,7 @@ function submitOutfit() {
 
   if (!equippedTargetItem.verbs.includes(verb)) {
     isValid = false
-    reasonText = feedbackMessage('verb_item_conflict', `動詞與衣物衝突：此處動詞為「${verb}」，但「${itemName}」不能搭配它。`, { verb, item: itemName })
+    reasonText = feedbackMessage('verb_item_conflict', `題目指定的說法，和「{item}」不太搭喔！`, { verb, item: itemName })
   }
 
   if (isValid) {
@@ -1397,7 +1419,7 @@ function submitOutfit() {
 
   if (isValid && isSameItem(itemName, '藍衫') && colorName !== 'X') {
     isValid = false
-    reasonText = feedbackMessage('hakka_shirt_color_conflict', '「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。')
+    reasonText = feedbackMessage('hakka_shirt_color_conflict', '藍衫本身就是藍染衣服，不需要再選其他顏色喔！')
   }
 
   const isItemMatch = currentLevel.allowedItems.some(item => isSameItem(item, itemName))
@@ -1439,7 +1461,7 @@ function submitOutfit() {
     if (!valRes.valid) {
       isContextMatch = false
       contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
-      contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `穿戴衣物不合時宜：阿梅身上穿的「${item.name}」不符合此場合。`, { item: item.name, reason: '' })
+      contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `阿梅身上的「{item}」比較不適合這個情境喔！`, { item: item.name, reason: '' })
       break
     }
 
@@ -1462,7 +1484,9 @@ function submitOutfit() {
   if (seasonalWeather === '熱' && warmClothing.length > 0) {
     isContextMatch = false
     contextMistakes = warmClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-    contextReason = feedbackMessage('hot_with_warm_clothing', '阿梅汗流浹背！大熱天穿厚重的衣物實在太悶熱了，快幫阿梅換上舒適輕便的衣物吧！')
+    contextReason = feedbackMessage('hot_with_warm_clothing', '好熱呀！建議改穿「{allowedItems}」或其他夏天衣物～', {
+      allowedItems: '短衫、短褲'
+    })
   }
 
   const coldItems = ['短衫', '短褲', '裙']
@@ -1470,7 +1494,9 @@ function submitOutfit() {
   if (seasonalWeather === '冷' && coldClothing.length > 0) {
     isContextMatch = false
     contextMistakes = coldClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-    contextReason = feedbackMessage('cold_with_summer_clothing', '冷風吹來～阿梅在瑟瑟發抖！你雖然符合題目要求，但是冬天穿短袖、短褲等衣物會著涼喔！快幫阿梅換成防寒的衣物吧！')
+    contextReason = feedbackMessage('cold_with_summer_clothing', '冬天穿「{items}」等衣物會著涼～', {
+      items: coldClothing.map(item => item.name).join('、')
+    })
   }
 
   // Special wedding banquet rules for all-white / all-black outfits and dark colors
@@ -1478,7 +1504,8 @@ function submitOutfit() {
   if (isContextMatch && isWeddingBanquet && equippedItems.length > 0) {
     const isAllWhite = equippedItems.every(i => isSameColor(i.color, '白色'))
     const isAllBlack = equippedItems.every(i => isSameColor(i.color, '烏色'))
-    const darkItems = equippedItems.filter(i => isSameColor(i.color, '烏色') || isSameColor(i.color, '白色'))
+    const whiteItems = equippedItems.filter(i => isSameColor(i.color, '白色'))
+    const blackItems = equippedItems.filter(i => isSameColor(i.color, '烏色'))
 
     if (isAllWhite) {
       isContextMatch = false
@@ -1488,10 +1515,14 @@ function submitOutfit() {
       isContextMatch = false
       contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
       contextReason = feedbackMessage('wedding_all_black', '「喜宴是開心的場合，穿得太黑在傳統習俗裡比較不吉利，換件活潑一點的衣服吧！」')
-    } else if (darkItems.length > 1) {
+    } else if (whiteItems.length > 1 || blackItems.length > 1) {
       isContextMatch = false
-      contextMistakes = darkItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-      contextReason = feedbackMessage('festive_too_many_dark_colors', '黑色或白色系穿搭比例過高，在傳統喜慶場合較為不妥。')
+      const limitedItems = whiteItems.length > 1 ? whiteItems : blackItems
+      const limitedColor = whiteItems.length > 1 ? '白色' : '烏色'
+      contextMistakes = limitedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage('festive_too_many_dark_colors', '新年去親戚家拜年的情境，「{color}」穿搭比例過高，在傳統喜慶場合較為不妥。', {
+        color: limitedColor
+      })
     }
   }
 
@@ -1713,7 +1744,7 @@ onBeforeUnmount(() => {
           <p class="lobby-intro">阿梅最愛出去玩，但出門前得先學會「看場合穿衣服」！翻開阿梅的衣櫃，發揮穿搭創意，幫阿梅避開尷尬的服裝災難，變身穿搭小達人吧！</p>
           <article class="info-block purpose"><b>▼ 遊玩提示</b><p>可在左方【穿搭小詞典】學習衣著單字喔！</p></article>
           <article class="info-block rules"><b>▼ 遊玩計分</b><ol><li>總遊玩分數，一題 10 分。</li><li>根據題目選擇合適的穿著。</li><li>累計最高分及最快秒數為勝利。</li></ol></article>
-          <p class="warning">▼ 出門前記得上衣、下衣、鞋子都要穿好喲！</p>
+          <p class="warning">▼ 出門前記得上衣、下身、鞋子都要穿好喲！</p>
         </section>
         <section class="dialect-panel" aria-label="選擇腔調別">
           <h2>選擇腔調別</h2>
@@ -1803,17 +1834,27 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="tutorialActive" class="tutorial-overlay" role="dialog" aria-modal="true" :aria-label="`操作介紹，第 ${tutorialStep + 1} 步，共 ${tutorialSteps.length} 步。${currentTutorialStep?.title}。${currentTutorialStep?.text}`" tabindex="0" @click="nextTutorialStep">
         <div v-if="tutorialTargetRect" class="tutorial-highlight" :style="tutorialHighlightStyle" aria-hidden="true"></div>
-        <article class="tutorial-card" @click.stop>
+        <div
+          v-if="tutorialDemoFeedback"
+          class="tutorial-demo-feedback"
+          :class="tutorialDemoFeedback.kind"
+          data-tutorial-target="demo-feedback"
+          aria-hidden="true"
+        >
+          <button class="tutorial-demo-close" type="button" tabindex="-1" aria-hidden="true">×</button>
+          <span>{{ tutorialDemoFeedback.title }}</span>
+          <div class="tutorial-demo-emoji">
+            <LottieEmoji :animationData="tutorialDemoFeedback.emojiData" :size="72" />
+          </div>
+          <p>{{ tutorialDemoFeedback.text }}</p>
+          <button class="primary" type="button" tabindex="-1" aria-hidden="true">下一題</button>
+        </div>
+        <article class="tutorial-card">
           <span>第 {{ tutorialStep + 1 }}/{{ tutorialSteps.length }} 步</span>
           <h2>{{ currentTutorialStep?.title }}</h2>
           <p>{{ currentTutorialStep?.text }}</p>
-          <div class="tutorial-actions">
-            <button class="secondary" type="button" @click="skipTutorial">跳過介紹</button>
-            <button class="primary" type="button" @click="nextTutorialStep">{{ tutorialStep === tutorialSteps.length - 1 ? '開始倒數' : '下一步' }}</button>
-          </div>
+          <button class="tutorial-inline-skip" type="button" @click.stop="skipTutorial">點畫面繼續，或跳過 ⏩</button>
         </article>
-        <button class="tutorial-skip-link" type="button" @click.stop="skipTutorial">跳過介紹</button>
-        <p class="tutorial-continue-hint">點擊畫面繼續，或跳過介紹 ➜</p>
       </div>
       <div v-if="countdownActive" class="countdown-overlay" role="status" aria-live="assertive" aria-label="遊戲即將開始">
         <strong>{{ countdownValue }}</strong>
