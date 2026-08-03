@@ -161,7 +161,7 @@ const baseClothing: Clothing[] = [
   makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
   makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png'),
   makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'scarf_B.png'),
-  makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
+  makeClothing('knee-yellow', '護膝', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
   makeClothing('pants-shorts-black', '短褲', '烏色', 'black', 'pants', 'bottoms', 'shorts_B.png'),
   makeClothing('head-white', '帽仔', '白色', 'white', 'head', 'accessories', 'hat.png'),
   makeClothing('pants-long-yellow', '長褲', '黃色', 'yellow', 'pants', 'bottoms', 'long_pants_B.png'),
@@ -203,7 +203,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', rainBootDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png', fullDyeColors),
-  ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),
+  ...makeDyeVariants('knee-protector', '護膝', 'knee', 'accessories', 'knee_protector_B.png'),
   ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png'),
 ].filter((item) => {
   const key = `${item.name}-${item.color}`
@@ -231,7 +231,7 @@ const slotByEntity: Record<string, Slot> = {
 
 const displayEntityByChinese: Record<string, string> = {
   '藍衫': 'hakka_shirt', '短衫': 'short_shirt', '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '鞋': 'shoes', '水靴筒': 'rain_boots',
-  '帽仔': 'hat', '泅水帽': 'swim_cap', '頸圍仔': 'scarf', '膝頭落仔': 'knee_protector', '泅水衫': 'swimsuit',
+  '帽仔': 'hat', '泅水帽': 'swim_cap', '頸圍仔': 'scarf', '膝頭落仔': 'knee_protector', '保護膝頭个': 'knee_protector', '護膝': 'knee_protector', '泅水衫': 'swimsuit',
   '羽絨衫': 'puffer_jacket', '膨線衫': 'sweater'
 }
 
@@ -241,7 +241,7 @@ const colorLabels: Record<string, string> = {
 }
 export const pinyinByWord: Record<string, string> = { 
   '藍衫': 'lamˋ samˊ', '短衫': 'donˋ qiu', '短褲': 'donˋ  fu', '長褲': 'congˇ fu', '鞋': 'haiˇ', 
-  '水靴筒': 'suiˋ hioˊ thungˇ', '帽仔': 'mo eˋ', '頸圍仔': 'giangˋ viˇ eˋ', '膝頭落仔': 'qidˋ teuˇ labˋ eˋ', 
+  '水靴筒': 'suiˋ hioˊ thungˇ', '帽仔': 'mo eˋ', '頸圍仔': 'giangˋ viˇ eˋ', '膝頭落仔': 'qidˋ teuˇ labˋ eˋ', '保護膝頭个': 'qidˋ teuˇ labˋ eˋ', '護膝': 'qidˋ teuˇ labˋ eˋ',
   '黃色': 'vongˇ sedˋ', '白色': 'pag sedˋ', '烏色': 'vuˊ sedˋ', '藍色': 'lamˇ sedˋ',
   '柑仔色': 'gamˊ eˋ sedˋ', '吊菜色': 'diau coi sedˋ', '紅色花圖案': 'fungˇ sedˋ faˊ bu',
   '羽絨衫': 'iˋ iungˇ samˊ', '膨線衫': 'pong xien samˊ', '泅水帽': 'qiuˇ suiˋ moapˋ', '泅水衫': 'siuˊ suiˋ samˊ'
@@ -261,7 +261,7 @@ function findClothingId(entity: string, colorKey: string): string | undefined {
   const entityToNameMap: Record<string, string> = {
     hakka_shirt: '藍衫', short_shirt: '短衫', shorts: '短褲', long_pants: '長褲', skirt: '裙',
     puffer_jacket: '羽絨衫', sweater: '膨線衫', swimsuit: '泅水衫', scarf: '頸圍仔', hat: '帽仔',
-    shoes: '鞋', knee_protector: '膝頭落仔', rain_boots: '水靴筒', swim_cap: '泅水帽'
+    shoes: '鞋', knee_protector: '護膝', rain_boots: '水靴筒', swim_cap: '泅水帽'
   }
   const name = entityToNameMap[entity]
   if (!name) return undefined

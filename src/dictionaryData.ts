@@ -118,7 +118,7 @@ export function getHakkaSentenceComponents(
     '泳衣': 'swimsuit', '泅水衫': 'swimsuit',
     '長褲': 'long_pants', '短褲': 'shorts', '裙': 'skirt', '裙子': 'skirt',
     '短袖': 'short_shirt', '短衫': 'short_shirt',
-    '護膝': 'knee_protector', '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector',
+    '護膝': 'knee_protector', '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector', '保護膝頭个': 'knee_protector',
     '鞋': 'sneakers', '鞋子': 'sneakers',
     '藍衫': 'hakka_shirt'
   }

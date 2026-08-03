@@ -189,6 +189,8 @@ const vocabularyLookupIds: Record<string, string> = {
   '帽仔': 'hat',
   '帽子': 'hat',
   '膝頭落仔': 'knee_protector',
+  '膝頭落': 'knee_protector',
+  '保護膝頭个': 'knee_protector',
   '護膝': 'knee_protector',
   '藍衫': 'hakka_shirt',
   '泅水帽': 'swim_cap',
