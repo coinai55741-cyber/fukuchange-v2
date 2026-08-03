@@ -244,10 +244,12 @@ export const displayEntityByChinese: Record<string, string> = {
   '膨線衫': 'sweater', '膨紗衫': 'sweater', '毛衣': 'sweater'
 }
 
+import { dynamicItemEntityMap } from './dictionaryData'
+
 export function getItemEntityId(term?: string): string {
   if (!term) return ''
   const trimmed = term.trim()
-  return displayEntityByChinese[trimmed] || trimmed
+  return dynamicItemEntityMap[trimmed] || displayEntityByChinese[trimmed] || trimmed
 }
 
 export function isSameItem(term1?: string, term2?: string): boolean {

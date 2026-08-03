@@ -94,6 +94,41 @@ export function getDictionaryItems(dialect: DialectCode = 'hak-sihien') {
     })
 }
 
+export const dynamicItemEntityMap: Record<string, string> = {}
+
+function initDynamicItemEntityMap() {
+  const rows = parseCsv(dictionaryEntriesCsv)
+  rows.forEach((row) => {
+    const id = row['資料ID']?.trim()
+    if (!id) return
+
+    const terms = [
+      row['資料ID'],
+      row['中文釋義'],
+      row['四縣客語字'],
+      row['海陸客語字'],
+      row['大埔客語字'],
+      row['饒平客語字'],
+      row['詔安客語字'],
+      row['南四縣客語字']
+    ]
+
+    terms.forEach((term) => {
+      if (term && term !== 'V' && term !== 'X') {
+        dynamicItemEntityMap[term.trim()] = id
+      }
+    })
+  })
+}
+
+initDynamicItemEntityMap()
+
+export function getItemEntityIdFromCsv(term?: string): string {
+  if (!term) return ''
+  const trimmed = term.trim()
+  return dynamicItemEntityMap[trimmed] || trimmed
+}
+
 export const SHOW_FALLBACK_NOTICE = true
 
 export function getHakkaSentenceComponents(
@@ -107,22 +142,8 @@ export function getHakkaSentenceComponents(
   const effectiveDialect: DialectCode = (dialect === 'hak-raoping' || dialect === 'hak-zhaoan') ? 'hak-sihien' : dialect
   const items = getDictionaryItems(effectiveDialect)
 
-  // Item Entry & Name / Pinyin
-  const itemLookupIds: Record<string, string> = {
-    '圍巾': 'scarf', '頸圍仔': 'scarf', '頸纏仔': 'scarf', '頸圍': 'scarf',
-    '毛衣': 'sweater', '膨線衫': 'sweater', '膨紗衫': 'sweater',
-    '羽絨衣': 'puffer_jacket', '羽絨衫': 'puffer_jacket',
-    '雨鞋': 'rain_boots', '雨靴': 'rain_boots', '水靴筒': 'rain_boots', '水鞋笐': 'rain_boots',
-    '帽子': 'hat', '帽仔': 'hat', '帽': 'hat',
-    '泳帽': 'swim_cap', '泅水帽': 'swim_cap', '泅水帽仔': 'swim_cap',
-    '泳衣': 'swimsuit', '泅水衫': 'swimsuit',
-    '長褲': 'long_pants', '短褲': 'shorts', '裙': 'skirt', '裙子': 'skirt',
-    '短袖': 'short_shirt', '短衫': 'short_shirt',
-    '護膝': 'knee_protector', '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector', '保護膝頭个': 'knee_protector',
-    '鞋': 'sneakers', '鞋子': 'sneakers',
-    '藍衫': 'hakka_shirt'
-  }
-  const lookupId = itemLookupIds[item]
+  // Item Entry & Name / Pinyin using dynamic CSV entity map
+  const lookupId = dynamicItemEntityMap[item] || dynamicItemEntityMap[item.trim()]
   const itemEntry = items.find(i => (lookupId && i.id === lookupId) || i.translation === item || i.name === item)
   const itemWord = itemEntry?.name || item
   const itemPinyin = itemEntry?.pinyin || item
