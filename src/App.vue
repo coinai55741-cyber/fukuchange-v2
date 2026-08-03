@@ -13,6 +13,12 @@ import coldEmojiData from '../public/emojis/cold_1f976.json'
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
 type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean; emojiData?: any } | null
 type Dialect = 'hak-sihien' | 'hak-hailu' | 'hak-dapu' | 'hak-raoping' | 'hak-zhaoan' | 'hak-namsihien'
+type TutorialStep = {
+  id: string
+  target: string
+  title: string
+  text: string
+}
 type QuestionReview = {
   id: string
   index: number
@@ -57,11 +63,28 @@ const lobbyLeaderboardOpen = ref(false)
 const isMobileViewport = ref(false)
 const closetAnnouncement = ref('')
 const soundAnnouncement = ref('音效目前開啟')
+const tutorialActive = ref(false)
+const tutorialStep = ref(0)
+const tutorialTargetRect = ref<DOMRect | null>(null)
+const countdownActive = ref(false)
+const countdownValue = ref(3)
 let mobileMediaQuery: MediaQueryList | null = null
 const dictionaryDialogRef = ref<HTMLElement | null>(null)
 const feedbackDialogRef = ref<HTMLElement | null>(null)
 const lobbyLeaderboardDialogRef = ref<HTMLElement | null>(null)
 let lastFocusedElement: HTMLElement | null = null
+let countdownTimer: number | undefined
+let timerStartedAt = 0
+
+const tutorialSteps: TutorialStep[] = [
+  { id: 'weather', target: 'weather', title: '查看天氣', text: '先查看今天的天氣與季節，判斷阿梅適合穿涼爽還是保暖的衣服。' },
+  { id: 'question', target: 'question', title: '了解題目要求', text: '了解這題的穿搭情境要求。' },
+  { id: 'closet', target: 'closet', title: '挑選衣物', text: '在阿梅的衣櫃中，挑選合適的穿著。' },
+  { id: 'count', target: 'completion', title: '確認穿著數量', text: '這裡會提示本題最低需要完成幾個穿著部位。' },
+  { id: 'submit', target: 'submit', title: '送出搭配', text: '按下送出搭配。' },
+  { id: 'next', target: 'submit', title: '前往下一題', text: '按下一題，就可以繼續挑戰下一關。' },
+  { id: 'retry', target: 'submit', title: '可以重新練習', text: '即使失敗了，也可以按上方 X 關閉提示，重新嘗試搭配呦！第一次送出的結果會記分，重新嘗試只供練習。' },
+]
 
 function rememberFocus() {
   lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -76,6 +99,31 @@ function restoreFocus() {
 async function focusDialog(dialogRef: { value: HTMLElement | null }) {
   await nextTick()
   dialogRef.value?.focus()
+}
+
+const currentTutorialStep = computed(() => tutorialSteps[tutorialStep.value])
+const tutorialHighlightStyle = computed(() => {
+  const rect = tutorialTargetRect.value
+  if (!rect) return {}
+  const padding = isMobileViewport.value ? 6 : 10
+  return {
+    left: `${Math.max(0, rect.left - padding)}px`,
+    top: `${Math.max(0, rect.top - padding)}px`,
+    width: `${rect.width + padding * 2}px`,
+    height: `${rect.height + padding * 2}px`
+  }
+})
+
+function updateTutorialTargetRect() {
+  if (!tutorialActive.value) return
+  const target = currentTutorialStep.value?.target
+  const element = target ? document.querySelector<HTMLElement>(`[data-tutorial-target="${target}"]`) : null
+  tutorialTargetRect.value = element?.getBoundingClientRect() ?? null
+}
+
+async function refreshTutorialHighlight() {
+  await nextTick()
+  requestAnimationFrame(updateTutorialTargetRect)
 }
 
 function openLobbyLeaderboard() {
@@ -682,6 +730,63 @@ function selectTenDiverseQuestions(allQuestions: Question[]): Question[] {
 
   return fillToTenQuestions(bestSet)
 }
+
+function startTimer() {
+  window.clearInterval(timer)
+  timerStartedAt = Date.now()
+  timer = window.setInterval(() => { elapsedMs.value = Date.now() - timerStartedAt }, 50)
+}
+
+function startCountdownBeforeGame() {
+  countdownActive.value = true
+  countdownValue.value = 3
+  window.clearInterval(countdownTimer)
+  countdownTimer = window.setInterval(() => {
+    if (countdownValue.value <= 1) {
+      window.clearInterval(countdownTimer)
+      countdownActive.value = false
+      startTimer()
+      return
+    }
+    countdownValue.value -= 1
+  }, 900)
+}
+
+function finishTutorial() {
+  tutorialActive.value = false
+  tutorialTargetRect.value = null
+  startCountdownBeforeGame()
+}
+
+function nextTutorialStep() {
+  if (!tutorialActive.value) return
+  if (tutorialStep.value >= tutorialSteps.length - 1) {
+    finishTutorial()
+    return
+  }
+  tutorialStep.value += 1
+  void refreshTutorialHighlight()
+}
+
+function skipTutorial() {
+  if (!tutorialActive.value) return
+  playSound('click')
+  finishTutorial()
+}
+
+function handleTutorialKeydown(event: KeyboardEvent) {
+  if (!tutorialActive.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    skipTutorial()
+    return
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    nextTutorialStep()
+  }
+}
+
 function startGame() {
   playSound('next')
   const nextGameSet = selectTenDiverseQuestions(questions)
@@ -697,8 +802,11 @@ function startGame() {
   feedback.value = null
   screen.value = 'game'
   window.clearInterval(timer)
-  const startedAt = Date.now()
-  timer = window.setInterval(() => { elapsedMs.value = Date.now() - startedAt }, 50)
+  window.clearInterval(countdownTimer)
+  countdownActive.value = false
+  tutorialStep.value = 0
+  tutorialActive.value = true
+  void refreshTutorialHighlight()
 }
 
 const soundEnabled = ref(true)
@@ -1493,8 +1601,13 @@ function replay() {
 
 function updateMobileViewport(event?: MediaQueryListEvent) {
   isMobileViewport.value = event?.matches ?? Boolean(mobileMediaQuery?.matches)
+  void refreshTutorialHighlight()
 }
 function handleGlobalKeydown(event: KeyboardEvent) {
+  if (tutorialActive.value) {
+    handleTutorialKeydown(event)
+    return
+  }
   if (event.key !== 'Escape') return
   if (feedback.value) {
     event.preventDefault()
@@ -1527,10 +1640,15 @@ onMounted(() => {
   updateMobileViewport()
   mobileMediaQuery.addEventListener('change', updateMobileViewport)
   window.addEventListener('keydown', handleGlobalKeydown)
+  window.addEventListener('resize', updateTutorialTargetRect)
+  window.addEventListener('scroll', updateTutorialTargetRect, true)
 })
 onBeforeUnmount(() => {
   window.clearInterval(timer)
+  window.clearInterval(countdownTimer)
   window.removeEventListener('keydown', handleGlobalKeydown)
+  window.removeEventListener('resize', updateTutorialTargetRect)
+  window.removeEventListener('scroll', updateTutorialTargetRect, true)
   mobileMediaQuery?.removeEventListener('change', updateMobileViewport)
   bgmAudio?.pause()
 })
@@ -1635,13 +1753,15 @@ onBeforeUnmount(() => {
       </header>
       <aside class="mission-card" tabindex="0" :aria-label="`第 ${questionIndex + 1} 題，第 ${phase} 階段。${seasonWeatherLabel}。題目：${hakkaBadgeText}。${questionDescriptionText}`">
         <span class="progress">第 {{ questionIndex + 1 }}/10 題・第 {{ phase }} 階段</span>
-        <h2>{{ seasonWeatherLabel }}</h2>
+        <h2 data-tutorial-target="weather">{{ seasonWeatherLabel }}</h2>
         <div v-if="isCurrentDialectFallback && showFallbackNotice" class="dialect-fallback-notice" role="status">
           <span>⚠️ 饒平腔／詔安腔內容校對中，現標示為四縣腔內容</span>
           <button class="fallback-notice-close" type="button" aria-label="關閉提示" @click="showFallbackNotice = false">×</button>
         </div>
-        <div class="question-badge">{{ hakkaBadgeText }}</div>
-        <p class="question-description">{{ questionDescriptionText }}</p>
+        <div class="mission-question-tutorial-target" data-tutorial-target="question">
+          <div class="question-badge">{{ hakkaBadgeText }}</div>
+          <p class="question-description">{{ questionDescriptionText }}</p>
+        </div>
       </aside>
       <section class="avatar-zone">
         <nav class="body-controls" aria-label="部位衣櫃捷徑"><div v-for="control in bodySlotControls" :key="control.slot" class="body-control"><button type="button" :class="{ equipped: isSlotEquipped(control.slot) }" :aria-label="`${control.label}部位，${isSlotEquipped(control.slot) ? '已穿搭' : '尚未穿搭'}，點擊前往衣櫃`" @click="focusClosetSlot(control.tab)">{{ control.label }}</button></div></nav>
@@ -1652,7 +1772,25 @@ onBeforeUnmount(() => {
           </div>
         </aside>
       </section>
-      <aside class="closet-card"><nav role="tablist" aria-label="衣櫃分類"><button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button></nav><p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p><div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id"><template v-if="activeTab === tab.id"><button v-for="card in closetCards" :id="`clothing-card-${card.id}`" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)" @keydown="handleClothingCardKeydown($event, card.id)"><span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span></button></template></div><div class="closet-footer"><strong role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong><button class="primary" type="button" @click="submitOutfit">送出搭配</button><button class="secondary" type="button" @click="resetOutfit">重置服裝</button><button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button></div></aside>
+      <aside class="closet-card" data-tutorial-target="closet">
+        <nav role="tablist" aria-label="衣櫃分類">
+          <button v-for="tab in tabs" :id="`closet-tab-${tab.id}`" :key="tab.id" role="tab" :aria-selected="activeTab === tab.id" :aria-controls="`closet-panel-${tab.id}`" :class="{ active: activeTab === tab.id }" @click="focusClosetSlot(tab.id)" @keydown="handleClosetTabKeydown($event, tab.id)"><b aria-hidden="true">{{ tab.icon }}</b>{{ tab.label }}</button>
+        </nav>
+        <p class="sr-only" role="status" aria-live="polite">{{ closetAnnouncement }}</p>
+        <div v-for="tab in tabs" :key="`panel-${tab.id}`" class="clothing-grid" role="tabpanel" :id="`closet-panel-${tab.id}`" :aria-labelledby="`closet-tab-${tab.id}`" :hidden="activeTab !== tab.id">
+          <template v-if="activeTab === tab.id">
+            <button v-for="card in closetCards" :id="`clothing-card-${card.id}`" :key="card.id" class="clothing-card" :class="{ selected: selected[card.slot] === card.id }" :aria-label="clothingCardAriaLabel(card)" @click="chooseCard(card.id, card.slot)" @keydown="handleClothingCardKeydown($event, card.id)">
+              <span class="clothing-thumbnail" :class="{ 'fixed-color': card.colorMode === 'fixed' }" :style="garmentStyle(card, card.closetImage)"><i class="thumbnail-dye"></i><i v-if="card.colorKey === 'red_flower_pattern'" class="thumbnail-pattern"></i><img class="clothing-card-image" :src="assetUrl(card.closetImage)" alt="" aria-hidden="true"></span>
+            </button>
+          </template>
+        </div>
+        <div class="closet-footer">
+          <strong data-tutorial-target="completion" role="status" aria-live="polite">完成搭配 <span :class="{ 'count-error': completedForQuestion > requiredSlots.length }">{{ completedForQuestion }}</span>/{{ requiredSlots.length }}</strong>
+          <button data-tutorial-target="submit" class="primary" type="button" @click="submitOutfit">送出搭配</button>
+          <button class="secondary" type="button" @click="resetOutfit">重置服裝</button>
+          <button class="secondary" type="button" @click="advanceQuestion(true)">跳過這題</button>
+        </div>
+      </aside>
       <div v-if="feedback" class="feedback-modal-overlay" role="dialog" aria-modal="true" aria-label="作答提示" @click.self="closeFeedback">
         <div ref="feedbackDialogRef" class="feedback" :class="feedback.kind" tabindex="-1">
           <button class="feedback-close" type="button" aria-label="關閉提示" @click="closeFeedback">×</button>
@@ -1662,6 +1800,23 @@ onBeforeUnmount(() => {
           <p>{{ feedback.text }}</p>
           <button v-if="feedback.canAdvance" class="primary" type="button" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button>
         </div>
+      </div>
+      <div v-if="tutorialActive" class="tutorial-overlay" role="dialog" aria-modal="true" :aria-label="`操作介紹，第 ${tutorialStep + 1} 步，共 ${tutorialSteps.length} 步。${currentTutorialStep?.title}。${currentTutorialStep?.text}`" tabindex="0" @click="nextTutorialStep">
+        <div v-if="tutorialTargetRect" class="tutorial-highlight" :style="tutorialHighlightStyle" aria-hidden="true"></div>
+        <article class="tutorial-card" @click.stop>
+          <span>第 {{ tutorialStep + 1 }}/{{ tutorialSteps.length }} 步</span>
+          <h2>{{ currentTutorialStep?.title }}</h2>
+          <p>{{ currentTutorialStep?.text }}</p>
+          <div class="tutorial-actions">
+            <button class="secondary" type="button" @click="skipTutorial">跳過介紹</button>
+            <button class="primary" type="button" @click="nextTutorialStep">{{ tutorialStep === tutorialSteps.length - 1 ? '開始倒數' : '下一步' }}</button>
+          </div>
+        </article>
+        <button class="tutorial-skip-link" type="button" @click.stop="skipTutorial">跳過介紹</button>
+        <p class="tutorial-continue-hint">點擊畫面繼續，或跳過介紹 ➜</p>
+      </div>
+      <div v-if="countdownActive" class="countdown-overlay" role="status" aria-live="assertive" aria-label="遊戲即將開始">
+        <strong>{{ countdownValue }}</strong>
       </div>
     </section>
 

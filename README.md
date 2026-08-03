@@ -1,38 +1,38 @@
-# 穿搭小達人工程交接文件
+# 穿搭小達人｜工程交接 README
 
-更新日期：2026-07-23  
+更新日期：2026-08-03  
+專案類型：Vue 3 + Vite + TypeScript 單頁互動遊戲  
+正式部署：GitHub Pages  
+目前網址：`https://coinai55741-cyber.github.io/fukuchange-v2/`
 
-GitHub：`https://github.com/coinai55741-cyber/fukuchange-v2`  
-GitHub Pages：`https://coinai55741-cyber.github.io/fukuchange-v2/`
+## 1. 專案定位
 
-## 1. 專案概述
+「穿搭小達人」是要串到網站活動頁中的前端小遊戲。玩家依照題目提示，替角色阿梅選擇符合天氣、場合、衣物與顏色的穿搭，完成 10 題後產生分數、用時、星級/稱號、排行榜與答題回顧。
 
-本專案是 Vue 3 + Vite 製作的「穿搭小達人」網頁遊戲。玩家依照題目中的天氣、季節、場合、衣物與顏色要求，幫角色阿梅完成穿搭。
+目前前端已完成：
 
-目前遊戲流程：
+- 前導故事
+- 規則/腔調選擇頁
+- 穿搭遊戲主畫面
+- 衣櫃與角色換裝
+- 題庫抽題
+- 四階層計分
+- 結果頁
+- 排行榜 UI
+- 穿搭造句回顧
+- 穿搭小詞典
+- 手機/桌機 RWD
+- 基礎無障礙標籤
 
-1. 前導故事。
-2. 遊戲說明 / 規則頁。
-3. 選擇客語腔調。
-4. 進入 10 題穿搭任務。
-5. 題目 1–5 顯示中文情境題。
-6. 題目 6–10 顯示客語拼音詞彙。
-7. 完成後顯示分數與排行榜。
+目前尚需工程師串接網站端：
 
-目前排行榜為 mock 資料，API 串接位置已預留。
+- 玩家身分/活動參數
+- 排行榜 API
+- 成績送出 API
+- 若網站有會員/Token，需要接入驗證或 request header
+- 若活動平台已有「返回列表」URL，需要替換目前按鈕行為
 
-## 2. 技術架構
-
-主要技術：
-
-- Vue 3
-- Vite
-- TypeScript
-- PixiJS 8
-- Spine Pixi Runtime
-- CSV 題庫與規則資料
-
-主要指令：
+## 2. 快速啟動
 
 ```bash
 npm install
@@ -43,653 +43,771 @@ npm run preview
 
 說明：
 
-- `npm install`：安裝本機套件。
-- `npm run dev`：啟動本機開發伺服器。
-- `npm run build`：產生正式版 `dist`。
-- `npm run preview`：預覽正式版 build 結果。
+- `npm run dev`：本機開發，預設常見網址為 `http://127.0.0.1:5173/`
+- `npm run build`：正式打包，會先執行 `npm run sync-i18n`
+- `npm run preview`：預覽 `dist`
+- `npm run sync-i18n`：從 `dictionary_entries.xlsx` 匯出/同步 `dictionary_entries.csv`
 
-## 3. 目前保留的專案結構
+## 3. 專案結構
 
 ```text
-fukuchange_v2
-  .github/
-    workflows/
-      pages.yml
+fukuchange_v2/
+  .github/workflows/pages.yml
   data/
+    dummy/
+    i18n/
     images/
     images-items/
     music/
     quiz/
     spine/
-    i18n/
+    ui/
+  public/
+  scripts/
   src/
     App.vue
     SpineAvatar.vue
-    gameData.ts
     dictionaryData.ts
+    gameData.ts
     leaderboardService.ts
     main.ts
     style.css
   index.html
   package.json
-  package-lock.json
-  tsconfig.json
   vite.config.ts
-  netlify.toml
-  穿搭闖關介面規格書.md
-  客語腔調與句子在地化架構.md
-  工程交接.md
 ```
 
-## 4. 重要檔案說明
+## 4. 網站串接重點
 
-### `src/App.vue`
+### 4.1 建議嵌入方式
 
-遊戲主流程與主要畫面。
+本專案目前是 SPA，最簡單的網站串接方式有兩種：
 
-負責：
+1. 直接把 GitHub Pages / 靜態部署網址放進活動頁 iframe。
+2. 將 build 後的 `dist/` 放到網站同網域靜態目錄，活動頁導向該路徑。
 
-- 前導故事
-- 規則頁
-- 腔調選擇
-- 題目顯示
-- 衣櫃切換
-- 穿搭選取
-- 分數判定
-- 結果回饋
-- 排行榜畫面
-- 穿搭小詞典彈窗
+若後端 API 有 CORS 或 Cookie 驗證限制，建議用第 2 種同網域部署，會少很多跨域問題。
 
-如果要改 UI、流程、分數顯示，大多從這裡開始看。
+### 4.2 建議由網站提供的參數
 
-### `src/gameData.ts`
-
-資料轉換核心。
-
-負責讀取：
+可用 query string 或全域設定注入：
 
 ```text
-data/quiz/穿搭小達人 - 出題架構.csv
-data/quiz/穿搭小達人 - 單字標籤.csv
-data/quiz/穿搭規則對照表.csv
-data/quiz/feedback_messages.csv
+eventId       活動 ID，目前程式暫寫 9
+playerId      玩家 ID
+displayName   玩家顯示名稱
+token         若 API 需要授權
+returnUrl     返回活動列表/上一頁網址
 ```
 
-也在此建立：
-
-- 衣物清單 `clothing`
-- 題目清單 `questions`
-- 規則清單 `rulesConfig`
-- 通用回饋文案 `feedbackMessages`
-
-新增衣物、顏色、題庫欄位時，這裡通常需要同步檢查。
-
-### `src/SpineAvatar.vue`
-
-角色 Spine 顯示與換裝邏輯。
-
-負責：
-
-- 載入 Spine skeleton / atlas。
-- 根據目前穿搭開關 attachment。
-- 泳帽切換頭部。
-- CSS / Spine tint 單色染色。
-- 花布 attachment 切換。
-- 部分衣物前後層排序。
-
-目前載入：
-
-```text
-data/spine/正面_角色架構.json
-data/spine/正面_角色架構.atlas
-data/spine/正面_角色架構.png
-```
-
-`data/spine/girl.spine` 是 Spine 編輯源檔，不是前端 runtime 必需，但已保留給工程師或美術後續調整。
-
-### `src/dictionaryData.ts`
-
-穿搭小詞典資料。
-
-負責：
-
-- 衣物詞彙
-- 拼音
-- 華語釋義
-- 小知識
-- 顏色詞彙
-
-目前詞典資料是寫在 TypeScript 裡，尚未改成 CSV 讀取。
-
-### `src/leaderboardService.ts`
-
-排行榜資料服務。
-
-目前使用 mock 資料。未來如果要串 API，建議保留同樣的輸出格式，替換內部 `fetchLeaderboard` / `submitGameResult` 實作即可。
-
-目前排序規則：
-
-```text
-分數高者優先
-同分時用時短者優先
-再同分時提交時間早者優先
-```
-
-## 5. 題庫資料
-
-題庫位置：
-
-```text
-data/quiz/穿搭小達人 - 出題架構.csv
-```
-
-目前遊戲會從這份 CSV 建立 10 題。
-
-重要欄位包含：
-
-| 欄位 | 用途 |
-|---|---|
-| `stage_id` | 題號 / 關卡 ID |
-| `stage_title` | 題目動詞來源，通常取逗號前半段 |
-| `context_text` | 逗號後情境描述 |
-| `item` | 題目指定衣物 |
-| `target_outfit_ids` | 正解穿搭 |
-| `required_slots` | 本題需要完成的部位 |
-| `must_have` | 天氣、場合、主題標籤 |
-| `錯誤提示 1：動詞` | 動詞錯誤回饋 |
-| `錯誤提示 2：衣物` | 衣物錯誤回饋 |
-| `錯誤提示 3：顏色` | 顏色錯誤回饋 |
-
-`target_outfit_ids` 格式範例：
-
-```text
-clothes:short_shirt@yellow;pants:shorts@yellow;shoes:shoes@white
-```
-
-程式會將 `short_shirt@yellow` 對應到 `gameData.ts` 裡的衣物 ID。
-
-`required_slots` 使用的部位：
-
-```text
-head
-neck
-body
-pants
-knee
-shoes
-```
-
-舊欄位如果寫 `clothes`，程式會轉成 `body`。  
-舊欄位如果寫 `accessories`，目前程式會轉成 `neck`。
-
-## 6. 單字標籤資料
-
-位置：
-
-```text
-data/quiz/穿搭小達人 - 單字標籤.csv
-```
-
-用途：
-
-- 定義衣物類型。
-- 定義適用動詞。
-- 定義天氣與場合標籤。
-- 定義禁用場合。
-
-常見 `type`：
-
-```text
-normal
-rain
-water
-color
-```
-
-目前程式會略過 `type=color` 的列，衣物資料主要從非 color 列建立。
-
-## 7. 穿搭規則與警告文案
-
-位置：
-
-```text
-data/quiz/穿搭規則對照表.csv
-```
-
-用途：
-
-- 特殊情境規則。
-- 顏色/衣物/天氣/場合衝突。
-- 指定警告提示。
-
-如果產品端想手動修正特定規則警告語，優先改這份 CSV 的：
-
-```text
-警告提示與評語文案
-```
-
-通用回饋文案位置：
-
-```text
-data/quiz/feedback_messages.csv
-```
-
-用途：
-
-- 缺衣物
-- 跳題
-- 分數階層文字
-- 一般錯誤訊息
-- 情境不符提示
-
-如果想改這句：
-
-```text
-太陽好大！小主人汗流浹背！大夏天穿厚重的羽絨衫或膨線衫實在太悶熱了，快去幫模特兒換上舒適輕便的短衫吧！
-```
-
-請到 `feedback_messages.csv` 找：
-
-```text
-hot_with_warm_clothing
-```
-
-## 8. 分數邏輯
-
-目前分數分四階層：
-
-| 階層 | 分數 | 說明 |
-|---|---:|---|
-| 完全正確 | 10 | 指定衣物/顏色正確，且整體穿搭符合情境 |
-| 目標正確但情境不符 | 6 | 題目指定物件有穿對，但其他穿搭不合天氣或場合 |
-| 目標錯誤但情境合理 | 4 | 身上穿搭適合情境，但沒有選到題目指定物件 |
-| 目標錯誤且情境不符 | 0 | 指定題目與整體情境都不符合 |
-
-注意：
-
-- 每題首次送出才記分。
-- 同一題重複送出不會重複加分。
-- 跳題為 0 分。
-- `完成搭配 x/y` 只代表指定部位是否有穿，不代表一定正確。
-
-核心程式在：
+目前程式內排行榜呼叫使用固定 `eventId = 9`，位置在：
 
 ```text
 src/App.vue
-submitOutfit()
+finishGame()
+showLeaderboard()
+loadLobbyLeaderboard()
 ```
 
-## 9. 衣櫃與衣物資料
-
-衣物資料目前主要寫在：
+正式串接時建議改為從 query string 讀取，例如：
 
 ```text
-src/gameData.ts
+?eventId=9&playerId=xxx&returnUrl=https%3A%2F%2F...
 ```
 
-每件衣物有這些重要屬性：
+## 5. 排行榜串接
 
-| 屬性 | 說明 |
-|---|---|
-| `id` | 前端選取與判定用 ID |
-| `name` | 中文衣物名稱 |
-| `color` | 顯示用顏色名稱 |
-| `colorKey` | 程式判定顏色 |
-| `colorMode` | `fixed` 或 `dye` |
-| `slot` | 穿戴部位 |
-| `tab` | 衣櫃分頁 |
-| `closetImage` | 衣櫃卡片圖片 |
-| `wearLayers` | 預留欄位，目前主要由 Spine attachment 控制 |
-| `type` | normal / rain / water |
-| `verbs` | 可搭配動詞 |
-| `weather` | 冷 / 熱 |
-| `occasions` | 場合 |
-| `blacklist` | 禁用場合 |
-
-目前衣櫃分頁：
-
-```text
-tops        上衣
-bottoms     下身
-shoes       鞋子
-accessories 配件
-```
-
-畫面左側部位捷徑：
-
-```text
-頭
-頸
-身
-褲
-膝
-腳
-```
-
-點擊部位會連到對應衣櫃分頁，並可用 X 取消該部位衣物。
-
-## 10. 顏色與染色規則
-
-目前顏色：
-
-```text
-yellow              黃色
-white               白色
-black               烏色
-orange              柑仔色
-purple              吊菜色
-red_flower_pattern  紅色花圖案
-blue                藍衫固定藍染
-```
-
-重要規則：
-
-- 藍衫是固定藍染，不做 CSS / Spine tint 變色。
-- 泳衣不產生紅色花圖案版本。
-- 泳帽不產生紅色花圖案版本。
-- 單色可染衣物用 Spine slot tint。
-- 紅色花圖案不是單色，需使用 `_hakka` attachment 或未來 mask/detail 流程。
-
-目前 Spine 顏色設定在：
-
-```text
-src/SpineAvatar.vue
-tintByColor
-tintItem()
-attachmentsForItem()
-```
-
-## 11. Spine 換裝規則
-
-Spine runtime 素材：
-
-```text
-data/spine/正面_角色架構.json
-data/spine/正面_角色架構.atlas
-data/spine/正面_角色架構.png
-```
-
-Spine 編輯源檔：
-
-```text
-data/spine/girl.spine
-```
-
-角色換裝對應在：
-
-```text
-src/SpineAvatar.vue
-attachmentByItem
-attachmentsForItem()
-```
-
-目前重要 attachment：
-
-```text
-body_base
-head_normal
-head_swim_cap
-head-swin
-shirt
-shirt_hakka
-shorts_B
-shorts_B_hakka
-long_pants_B
-long_pants_B_hakka
-skirt_B_over
-skirt_B_over_hakka
-hat
-hat_hakka
-scarf_B
-scarf_B_hakka
-knee_protector_B
-knee_protector_B_hakka
-sneakers_B
-sneakers_B_hakka
-rain_boots_B
-rain_boots_B_hakka
-puffer_jacket_B
-puffer_jacket_B_hakka
-sweater_B
-sweater_B_hakka
-swimsuit_B
-swimsuit_B_hakka
-hakka_shirt_B
-```
-
-### 泳帽特殊規則
-
-戴泳帽時需要同時開：
-
-```text
-head_swim_cap
-head-swin
-```
-
-並且關閉：
-
-```text
-head_normal
-```
-
-一般帽子不換頭，只有泳帽會換頭。
-
-### 前後層排序
-
-部分衣物前後層由程式調整：
-
-```text
-src/SpineAvatar.vue
-adjustDrawOrder()
-```
-
-目前有處理：
-
-- 膝頭落仔
-- 鞋 / 雨鞋
-- 裙子前層
-- 藍衫
-- 羽絨衣
-
-如果後續測試發現「某件衣服應該在另一件上面/下面」，建議不要再改 PSD 命名，直接補在 `adjustDrawOrder()`。
-
-## 12. 素材資料夾
-
-### `data/images`
-
-衣櫃縮圖與部分角色素材。
-
-包含：
-
-- 一般衣物 PNG
-- `_hakka` 花布版本
-- `hakka_pattern.png`
-
-目前衣櫃縮圖從 `clothing.closetImage` 讀取。
-
-### `data/images-items`
-
-前導故事與背景圖。
-
-目前使用：
-
-```text
-S2_m1_BGhot.png
-S2_m1_BGwinter.png
-S2_m1_BGrain.png
-S2_m1_BGnight.png
-S2_m1_ame1.png
-S2_m1_mom1.png
-```
-
-### `data/music`
-
-音效：
-
-```text
-S2_m2_click.mp3
-S2_m2_false.mp3
-S2_m2_next.mp3
-```
-
-## 13. 客語腔調與 i18n
-
-目前前端已有六腔選項：
-
-1. 四縣腔
-2. 海陸腔
-3. 大埔腔
-4. 饒平腔
-5. 詔安腔
-6. 南四縣腔
-
-目前實際題目拼音主要仍以現有資料為準。`data/i18n` 已保留作未來擴充。
-
-保留檔案：
-
-```text
-data/i18n/locales.csv
-data/i18n/question_localizations.csv
-data/i18n/vocabulary_localizations.csv
-```
-
-注意：
-
-- 遊戲對話與排行榜 5 星評語稱號，暫不需要多語資料規格。
-- 未來若要真正支援六腔，建議將題目文字、單字、拼音從 `gameData.ts` 與固定 CSV 欄位抽到 i18n 表。
-
-## 14. 部署
-
-目前 GitHub Pages 使用：
-
-```text
-.github/workflows/pages.yml
-```
-
-部署流程：
-
-1. push 到 `main`
-2. GitHub Actions 安裝套件
-3. 執行 `npm run build`
-4. 上傳 `dist`
-5. 部署到 GitHub Pages
-
-Vite 設定：
-
-```text
-vite.config.ts
-```
-
-其中 GitHub Pages base path 為：
-
-```text
-/fukuchange-v2/
-```
-
-正式網址：
-
-```text
-https://coinai55741-cyber.github.io/fukuchange-v2/
-```
-
-## 15. 排行榜 API 交接
-
-目前檔案：
+排行榜唯一資料入口在：
 
 ```text
 src/leaderboardService.ts
 ```
 
-目前是 mock service。
+目前是 mock 資料。工程師正式串接時，優先只改這支檔案，不要讓 `App.vue` 直接碰後端原始 API。
 
-工程師接 API 時建議保留這個介面：
-
-```ts
-fetchLeaderboard(gameId: number)
-submitGameResult(gameId: number, result: GameResultPayload)
-```
-
-`GameResultPayload`：
+### 5.1 目前前端期待的型別
 
 ```ts
-{
+export type LeaderboardEntry = {
+  rank: number
+  displayName: string
+  score: number
+  elapsedMs: number
+  submittedAt: string
+}
+
+export type LeaderboardResponse = {
+  eventId: number
+  rankingRule: 'score_desc_elapsed_ms_asc_submitted_at_asc'
+  participantCount: number
+  playCount: number
+  entries: LeaderboardEntry[]
+  myEntry?: LeaderboardEntry
+}
+
+export type GameResultPayload = {
   score: number
   elapsedMs: number
 }
 ```
 
-回傳資料建議格式：
+### 5.2 需要串接的功能
+
+```ts
+leaderboardService.getLeaderboard(eventId)
+```
+
+用途：
+
+- 規則頁右側小排行榜
+- 結算頁總排名
+- 點「查看總排名」時使用
+
+```ts
+leaderboardService.submitGameResult(eventId, result)
+```
+
+用途：
+
+- 玩家完成 10 題後送出結果
+- 回傳最新排行榜與自己的名次
+
+### 5.3 排名規則
+
+目前 UI 依此假設呈現：
+
+```text
+分數高者優先
+同分時，用時短者優先
+再同分時，提交時間早者優先
+```
+
+如果後端排序不同，請同步調整 UI 文案或 `rankingRule`。
+
+### 5.4 分數、星級、玩家資料
+
+目前前端已有：
+
+- `score`：總分，0–100
+- `elapsedMs`：本輪遊玩時間，毫秒
+- `resultTitle`：依總分顯示稱號
+- `resultComment`：依總分顯示評語
+- `questionReviews`：10 題答題回顧
+
+星級目前建議由前端依分數換算，或由後端回傳。若由前端換算，可用：
+
+```text
+100 分：5 星
+80–99 分：4 星
+60–79 分：3 星
+40–59 分：2 星
+1–39 分：1 星
+0 分：0 星
+```
+
+目前 UI 主要顯示稱號與分數，若網站需要星級欄位，建議在 `submitGameResult()` payload 補：
 
 ```ts
 {
-  participantCount: number
-  playCount: number
-  rankingRule: 'score_desc_elapsed_ms_asc_submitted_at_asc',
-  entries: [
+  score: number
+  elapsedMs: number
+  star: number
+  playerId?: string
+  displayName?: string
+  eventId?: number
+}
+```
+
+### 5.5 自己在十名外的呈現
+
+`LeaderboardResponse.myEntry` 若 `rank > 10`，畫面會在前十名下方顯示垂直 `...`，再顯示自己的成績列。
+
+請後端務必回傳：
+
+- 前 10 名：`entries`
+- 自己名次：`myEntry`
+
+即使自己不在前 10，也要回傳 `myEntry`。
+
+## 6. 題目維護
+
+題目基本上不會頻繁改，只有老師/企劃反應時才調整。
+
+主要題庫：
+
+```text
+data/quiz/穿搭小達人 - 出題架構.csv
+```
+
+### 6.1 常用欄位
+
+| 欄位 | 用途 | 是否常改 |
+|---|---|---|
+| `stage_id` | 題目 ID | 不建議改 |
+| `stage_title` | 動詞，如 `著`、`戴` | 偶爾 |
+| `Pool` | 題池，1 是客語字、2 是拼音題 | 不建議改 |
+| `context_text` | 華語情境句 | 會改 |
+| `require_color` | 是否題目要抽顏色，目前多數應為 `是` | 少改 |
+| `true_color` | 題目可抽到/可當答案的顏色 | 會改 |
+| `item` | 題目可抽到/可當答案的衣物 | 會改 |
+| `allow_colors` | 禁忌式規則的允許顏色白名單 | 偶爾 |
+| `deny_colors` | 禁忌式規則的禁止顏色 | 偶爾 |
+| `deny_color_feedback_key` | 禁止顏色時使用哪句回饋 | 偶爾 |
+| `deny_items` | 禁止衣物 | 偶爾 |
+| `must_have` | 天氣/場合/主題標籤 | 重要，需小心 |
+| `required_slots` | 本題必須穿好的部位 | 少改 |
+| `target_outfit_ids` | 正解穿搭基準 | 工程/企劃確認後再改 |
+| `limited_color` | 某顏色最多可出現幾件 | 特殊規則 |
+| `limited_color_max` | 搭配 `limited_color` 使用 | 特殊規則 |
+| `limited_color_feedback_key` | 超量時的回饋 key | 特殊規則 |
+
+### 6.2 `Pool` 的意思
+
+遊戲共 10 題：
+
+- 第 1–5 題：Pool 1，顯示客語字
+- 第 6–10 題：Pool 2，顯示拼音
+
+兩池可以練到同一個衣物/顏色，但同一池內會盡量避免重複出現同一個客語字或拼音。
+
+### 6.3 題目顯示方式
+
+題目卡片分成：
+
+```text
+天氣/季節標題
+客語 Badge
+華語情境句
+```
+
+範例：
+
+```text
+☀️ 夏天／熱
+著白色个裙
+穿去觀賞桐花最合適！充滿在地白色桐花意象，好看又特別。
+```
+
+第 2 階段會把題目指定詞的一部分換成拼音。
+
+## 7. 題目邏輯
+
+題目資料在 `src/gameData.ts` 被轉成 `questions`，遊戲流程在 `src/App.vue`。
+
+### 7.1 抽題邏輯
+
+核心函式：
+
+```text
+src/App.vue
+selectTenDiverseQuestions()
+```
+
+目前規則：
+
+- 從 CSV 讀入所有題目。
+- 每題會先依 `true_color` 隨機生成一個當輪題目顏色。
+- Pool 1 抽 5 題，Pool 2 抽 5 題。
+- 同一池內盡量避免題目詞彙重複。
+- 同一池內盡量避免客語字/拼音重複。
+- 同一池內盡量避免同情境重複。
+- 冷、雨、水上、打掃等題型有加權，避免永遠抽不到。
+- 若嚴格條件導致題數不足，程式會逐步放寬部分限制，以確保湊滿 10 題。
+
+### 7.2 題目答案來源
+
+每題主要有兩種答案概念：
+
+1. 題目 Badge 指定答案  
+   例如：`著 pag sedˋ 个裙`，指定的是「白色裙」。
+
+2. 整體穿搭是否符合情境  
+   例如：冬天不能穿短袖短褲；婚宴不能穿雨鞋；大掃除不適合亮色系。
+
+所以玩家可能得到：
+
+- 題目指定物件對，但其他衣服不合情境：6 分
+- 題目指定物件錯，但全身穿搭合理：4 分
+- 都錯：0 分
+
+### 7.3 驗證邏輯
+
+核心函式：
+
+```text
+src/App.vue
+submitOutfit()
+validateItem()
+validateColor()
+checkSemanticConflict()
+```
+
+驗證分三層：
+
+1. 目標答案檢查  
+   是否有穿到本題要求的衣物與顏色。
+
+2. 整體情境檢查  
+   身上所有衣物是否符合天氣、場合、禁忌規則。
+
+3. 特殊語意檢查  
+   例如熱天不穿羽絨衣、非水上活動不戴泳帽、下雨/打掃才適合雨鞋。
+
+### 7.4 分數階層
+
+| 情況 | 分數 |
+|---|---:|
+| 題目指定答案正確，情境也正確 | 10 |
+| 題目指定答案正確，但情境不合 | 6 |
+| 題目指定答案錯，但情境合理 | 4 |
+| 題目指定答案錯，情境也不合 | 0 |
+| 跳過 | 0 |
+
+每題只在第一次送出時記分，避免玩家重複嘗試洗分。
+
+## 8. 回饋文案
+
+正式回饋文案在：
+
+```text
+data/quiz/feedback_messages.csv
+```
+
+程式會用 `message_key` 找文案。
+
+常見 key：
+
+```text
+tier_success
+tier_context_wrong_default
+tier_target_wrong_context_right
+tier_target_and_context_wrong
+skip_question
+missing_required_outfit
+hot_with_warm_clothing
+cold_with_summer_clothing
+cleaning_bright_color_warning
+festive_too_many_dark_colors
+```
+
+注意：
+
+- `data/dummy/穿搭規則對照表.csv` 是內部參考，不是目前正式讀取來源。
+- 不要在題庫 CSV 塞玩家會看到的內部規則文案。
+- 玩家看得到的警告語，優先放 `feedback_messages.csv`。
+
+## 9. 客語、拼音與詞典
+
+目前詞典與遊戲題目詞彙同源：
+
+```text
+data/i18n/dictionary_entries.csv
+data/i18n/dictionary_entries.xlsx
+```
+
+企劃/老師較適合維護：
+
+```text
+data/i18n/dictionary_entries.xlsx
+```
+
+程式讀取：
+
+```text
+data/i18n/dictionary_entries.csv
+```
+
+若修改 Excel，需同步匯出 CSV：
+
+```bash
+npm run sync-i18n
+```
+
+### 9.1 六腔欄位
+
+目前保留：
+
+- 四縣客語字 / 四縣拼音
+- 海陸客語字 / 海陸拼音
+- 大埔客語字 / 大埔拼音
+- 饒平客語字 / 饒平拼音
+- 詔安客語字 / 詔安拼音
+- 南四縣客語字 / 南四縣拼音
+
+若欄位填 `V`，前端會照樣顯示 `V`，用來提醒還沒補翻譯。
+
+### 9.2 中文釋義
+
+`中文釋義` 供：
+
+- 穿搭小詞典顯示
+- 無障礙 alt text 使用
+- 工程 mapping 輔助
+
+介面核心操作與無障礙標籤以華語優先，讓 NVDA/Chrome 螢幕閱讀器能穩定朗讀。
+
+## 10. 衣物與角色素材
+
+### 10.1 衣物資料
+
+衣物清單目前主要在：
+
+```text
+src/gameData.ts
+```
+
+主要型別：
+
+```ts
+type Clothing = {
+  id: string
+  name: string
+  color: string
+  colorKey: string
+  colorMode: 'fixed' | 'dye'
+  slot: Slot
+  tab: ClosetTab
+  closetImage: string
+  wearLayers: string[]
+  type: string
+  verbs: string[]
+  weather: string[]
+  occasions: string[]
+  blacklist: string[]
+}
+```
+
+衣物標籤資料來自：
+
+```text
+data/quiz/穿搭小達人 - 單字標籤.csv
+```
+
+### 10.2 衣櫃縮圖
+
+使用：
+
+```text
+data/images/
+```
+
+例如：
+
+```text
+shirt.png
+shorts_B.png
+rain_boots_B.png
+hat.png
+head-swin.png
+```
+
+### 10.3 Spine 角色
+
+使用：
+
+```text
+data/spine/正面_角色架構.json
+data/spine/正面_角色架構.atlas
+data/spine/正面_角色架構.png
+data/spine/girl.spine
+```
+
+主要程式：
+
+```text
+src/SpineAvatar.vue
+```
+
+泳帽特殊規則：
+
+- 穿 `泅水帽` 時要切換 `head_swim_cap`
+- 一般帽子不換頭
+- 泳帽與頭部是組合出現
+
+### 10.4 顏色與花布
+
+目前單色衣物使用 CSS/Spine tint。
+
+特殊：
+
+- 藍衫固定藍染，不抽顏色。
+- 紅色花圖案使用花布圖案/花布 attachment，不是單色 tint。
+- 花布若要更精細，未來可改成 mask/detail 流程。
+
+## 11. 靜態串接 vs 動態串接
+
+### 11.1 靜態串接
+
+這些資料目前由前端靜態打包或公開部署：
+
+| 類型 | 位置 | 說明 |
+|---|---|---|
+| 題庫 | `data/quiz/穿搭小達人 - 出題架構.csv` | 題目、答案、限制規則 |
+| 衣物標籤 | `data/quiz/穿搭小達人 - 單字標籤.csv` | 動詞、天氣、場合、黑名單 |
+| 回饋文案 | `data/quiz/feedback_messages.csv` | 玩家會看到的提示 |
+| 詞典/六腔 | `data/i18n/dictionary_entries.csv` | 客語字、拼音、中文釋義 |
+| 角色素材 | `data/spine/` | Spine runtime |
+| 衣物圖片 | `data/images/` | 衣櫃縮圖/花布 |
+| 背景與故事圖 | `data/images-items/` | BG、人物、結果頁圖 |
+| 音效 | `data/music/` | click/next/false/bgm |
+| UI icon | `data/ui/` | 返回、音效、排名 icon |
+
+這些資料如果改了，要重新 build / deploy。
+
+### 11.2 動態串接
+
+正式網站應該動態提供：
+
+| 類型 | 建議來源 |
+|---|---|
+| 玩家 ID | 網站會員/活動系統 |
+| 玩家顯示名稱 | 網站會員/活動系統 |
+| 活動 ID | query string 或頁面注入 |
+| 排行榜前 10 | API |
+| 玩家自己的排名 | API |
+| 送出成績 | API |
+| 參加人數/遊玩次數 | API |
+| 返回列表網址 | 活動頁提供 |
+| API token/session | 網站登入狀態 |
+
+### 11.3 可視需求決定是否動態化
+
+以下目前是靜態，但未來可改動態：
+
+| 項目 | 何時需要動態化 |
+|---|---|
+| 題庫 CSV | 老師會頻繁後台改題時 |
+| 回饋文案 | 活動營運要即時調文案時 |
+| 詞典資料 | 六腔資料常態維護時 |
+| 遊戲開關 | 需要 A/B test 或活動期間設定時 |
+| 音效/背景 | 活動主題常換時 |
+
+## 12. 網站 API 建議規格
+
+### 12.1 取得排行榜
+
+```http
+GET /api/events/{eventId}/leaderboard?playerId={playerId}
+```
+
+建議回傳：
+
+```json
+{
+  "eventId": 9,
+  "rankingRule": "score_desc_elapsed_ms_asc_submitted_at_asc",
+  "participantCount": 54,
+  "playCount": 121,
+  "entries": [
     {
-      rank: number,
-      displayName: string,
-      score: number,
-      elapsedMs: number,
-      submittedAt: string
+      "rank": 1,
+      "displayName": "林O恩",
+      "score": 100,
+      "elapsedMs": 5000,
+      "submittedAt": "2026-07-20T09:00:00Z"
+    }
+  ],
+  "myEntry": {
+    "rank": 16,
+    "displayName": "測○○",
+    "score": 60,
+    "elapsedMs": 32310,
+    "submittedAt": "2026-07-20T09:30:00Z"
+  }
+}
+```
+
+### 12.2 送出成績
+
+```http
+POST /api/events/{eventId}/game-results
+```
+
+建議 payload：
+
+```json
+{
+  "playerId": "PLAYER_ID",
+  "displayName": "測○○",
+  "score": 90,
+  "star": 4,
+  "elapsedMs": 45321,
+  "answers": [
+    {
+      "questionId": "csv-18",
+      "stageId": 18,
+      "score": 10,
+      "passed": true,
+      "skipped": false
     }
   ]
 }
 ```
 
-如果後端 API 格式不同，建議只改 `leaderboardService.ts` 做 adapter，不要讓 `App.vue` 直接吃後端原始格式。
+建議回傳同 `LeaderboardResponse`，前端即可直接更新結果頁。
 
-## 16. 常見修改位置
+## 13. 結果頁與答題回顧
 
-| 想修改的內容 | 建議修改位置 |
+結果頁資料來源：
+
+```text
+score
+elapsedMs
+leaderboard
+questionReviews
+```
+
+`questionReviews` 由前端每題首次送出/跳過時產生，包含：
+
+- 題目 ID
+- 題號
+- 得分
+- 是否通關
+- 是否跳過
+- 題目 Badge
+- 華語情境句
+- 玩家穿搭快照 base64
+- 回饋文案
+- 錯誤衣物提示
+
+目前穿搭快照暫存在瀏覽器記憶體，進結果頁用，不會送到後端。若後端需要保存答題圖，需另外規劃上傳機制，不建議直接把 base64 放進排行榜 API。
+
+## 14. 無障礙交接
+
+目前已做：
+
+- 主要按鈕有 `aria-label`
+- 音效按鈕有 `aria-pressed`
+- 對話框有 `role="dialog"`
+- 題目卡與結果回顧可聚焦
+- 排行榜獎牌有 alt 與可朗讀排名文字
+- 穿搭快照 alt text 使用華語描述
+
+後續若申請 AA，建議工程師再做：
+
+- 用 Lighthouse / axe / WAVE 掃正式站。
+- 用 NVDA + Chrome 實測 Tab 順序。
+- 檢查所有 hover 說明是否也能 focus 觸發。
+- 檢查色彩對比。
+- 檢查手機直式提示是否可被朗讀。
+- 確認 iframe 嵌入時 title 與 focus 不會遺失。
+
+## 15. 部署
+
+GitHub Pages workflow：
+
+```text
+.github/workflows/pages.yml
+```
+
+Vite base：
+
+```text
+vite.config.ts
+```
+
+目前 GitHub Pages 路徑為：
+
+```text
+/fukuchange-v2/
+```
+
+如果改由正式網站同網域部署，可能要調整 `vite.config.ts` 的 `base`。
+
+## 16. 工程師接手建議順序
+
+1. 先跑本機：
+
+   ```bash
+   npm install
+   npm run dev
+   npm run build
+   ```
+
+2. 確認網站嵌入方式：
+
+   - iframe
+   - 靜態頁路徑
+   - 活動頁內嵌 Vue bundle
+
+3. 串 `leaderboardService.ts`：
+
+   - `getLeaderboard`
+   - `submitGameResult`
+
+4. 串玩家資料：
+
+   - eventId
+   - playerId
+   - displayName
+   - token/session
+   - returnUrl
+
+5. 確認 API 回傳與 UI 對齊：
+
+   - 前 10 名
+   - 自己名次
+   - 參加人數
+   - 遊玩次數
+   - 排名規則
+
+6. 跑一輪完整遊戲：
+
+   - 正確 10 分
+   - 情境錯 6 分
+   - 目標錯 4 分
+   - 跳題 0 分
+   - 結果送出
+   - 排行榜更新
+
+7. 做正式站 AA 檢測。
+
+## 17. 目前需注意的資料狀態
+
+- `data/dummy/` 裡是備用/內部參考資料，目前不被正式遊戲讀取。
+- `data/i18n/dictionary_entries.xlsx` 保留給企劃填寫，不是前端直接讀取；前端讀 CSV。
+- `data/music/S2_m2_bgmloop.mp3` 目前本機有未提交修改，請確認是否為最新版背景音樂。
+- 題目邏輯仍有少量特殊規則寫在 `src/App.vue`，例如婚宴/拜年黑白色比例、冷熱衣物、泳裝場景、雨鞋場景。若未來題庫更常調整，建議把特殊規則逐步資料化。
+
+## 18. 常見修改位置
+
+| 想修改 | 主要位置 |
 |---|---|
-| 題目文字 | `data/quiz/穿搭小達人 - 出題架構.csv` |
-| 題目正解 | `target_outfit_ids` |
-| 題目需穿部位數 | `required_slots` |
-| 衣物標籤/禁用場合 | `data/quiz/穿搭小達人 - 單字標籤.csv` |
-| 特殊警告文字 | `data/quiz/穿搭規則對照表.csv` |
-| 通用回饋文字 | `data/quiz/feedback_messages.csv` |
-| 新增衣物 | `src/gameData.ts` + `data/images` + Spine attachment |
-| 改衣櫃 UI | `src/App.vue` + `src/style.css` |
-| 改角色穿搭顯示 | `src/SpineAvatar.vue` |
-| 改排行榜 | `src/leaderboardService.ts` |
-| 改首頁/前導故事 | `src/App.vue` |
-| 改詞典 | `src/dictionaryData.ts` |
+| 題目情境句 | `data/quiz/穿搭小達人 - 出題架構.csv` |
+| 題目可抽顏色 | `true_color` |
+| 題目可抽衣物 | `item` |
+| 禁止顏色 | `deny_colors` |
+| 禁止衣物 | `deny_items` |
+| 特定顏色最多幾件 | `limited_color` / `limited_color_max` |
+| 玩家提示文案 | `data/quiz/feedback_messages.csv` |
+| 客語字/拼音/中文釋義 | `data/i18n/dictionary_entries.xlsx` → 匯出 CSV |
+| 衣櫃圖片 | `data/images/` + `src/gameData.ts` |
+| 角色穿搭 | `data/spine/` + `src/SpineAvatar.vue` |
+| 排行榜串接 | `src/leaderboardService.ts` |
+| 結果頁 | `src/App.vue` + `src/style.css` |
+| 背景圖 | `data/images-items/` + `backgroundImageForQuestion()` |
+| 音效 | `data/music/` + `playSound()` |
 
-## 17. 接手注意事項
+## 19. 給後端/網站工程師的最短摘要
 
-1. `data` 目前被 Vite 設為 `publicDir`，所以 `data` 裡所有檔案都會被公開部署。
-2. 不要把 PSD、參考圖、大量備份檔放進 `data`，除非確定要公開給網站讀取。
-3. `node_modules` 和 `dist` 不需要進 Git。
-4. 修改 CSV 後請跑 `npm run build`，確認格式沒有造成解析錯誤。
-5. 新增衣物時，需要同步考慮三件事：
-   - 衣櫃縮圖
-   - 題庫/規則判定
-   - Spine attachment 顯示
-6. 花布不是單色 tint，若要新增更多花布衣物，需準備對應 `_hakka` attachment，或改成 mask/detail 疊圖流程。
-7. 泳帽會替換頭，一般帽子不會。
-8. 分數目前是四階層，不是單純「有穿指定衣物就 10 分」。
+如果只要串網站，請先看這三個檔：
 
-## 18. 建議後續 Roadmap
+```text
+src/leaderboardService.ts
+src/App.vue
+vite.config.ts
+```
 
-### 短期
+必接：
 
-- 確認 10 題所有正解都能拿 10 分。
-- 檢查每個分頁所有衣物縮圖與角色穿上後是否一致。
-- 補完排行榜 API 實際串接。
-- 把詞典資料從 `dictionaryData.ts` 移到 CSV，方便非工程人員維護。
+- `getLeaderboard(eventId)`
+- `submitGameResult(eventId, { score, elapsedMs, star?, playerId?, displayName? })`
+- 活動頁傳入 `eventId/playerId/displayName/returnUrl`
 
-### 中期
+不要優先動：
 
-- 完成六腔客語資料表讀取。
-- 整理 `data/i18n` 並接到前端。
-- 建立更完整的衣物 layering 規則表，減少硬寫在 `adjustDrawOrder()`。
-- 增加素材檢查工具，確認 CSV 指到的圖片與 Spine attachment 都存在。
+- 題庫 parser
+- Spine 換裝
+- 計分規則
 
-### 長期
-
-- 規劃 Spine 動畫。
-- 將花布改為更彈性的 mask/detail 或 shader/pattern 疊圖流程。
-- 將題庫、規則、詞典、排行榜設定後台化。
-- 建立美術交付規範：PSD、Spine、衣櫃縮圖、花布素材命名一致。
-
+除非老師/企劃要改題或改判定。
