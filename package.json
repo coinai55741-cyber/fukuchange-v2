@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "sync-i18n": "python scripts/export_dictionary.py",
+    "predev": "npm run sync-i18n",
+    "prebuild": "npm run sync-i18n",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview"
