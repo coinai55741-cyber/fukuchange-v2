@@ -10,13 +10,22 @@ const props = defineProps<{
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let anim: AnimationItem | null = null
+let loadedData: any = null
+let loadedSrc: string | undefined = undefined
 
 function loadAnimation() {
+  if (anim && props.animationData === loadedData && props.src === loadedSrc) {
+    return
+  }
+
   if (anim) {
     anim.destroy()
     anim = null
   }
   if (!containerRef.value) return
+
+  loadedData = props.animationData
+  loadedSrc = props.src
 
   if (props.animationData) {
     anim = lottie.loadAnimation({
@@ -41,9 +50,9 @@ onMounted(() => {
   loadAnimation()
 })
 
-watch(() => [props.animationData, props.src], () => {
+watch([() => props.animationData, () => props.src], () => {
   loadAnimation()
-}, { deep: true })
+})
 
 onBeforeUnmount(() => {
   if (anim) {
