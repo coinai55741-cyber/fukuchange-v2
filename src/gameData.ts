@@ -229,10 +229,33 @@ const slotByEntity: Record<string, Slot> = {
   hat: 'head', swim_cap: 'head', scarf: 'neck', knee_protector: 'knee',
 }
 
-const displayEntityByChinese: Record<string, string> = {
-  '藍衫': 'hakka_shirt', '短衫': 'short_shirt', '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '鞋': 'shoes', '水靴筒': 'rain_boots',
-  '帽仔': 'hat', '泅水帽': 'swim_cap', '頸圍仔': 'scarf', '膝頭落仔': 'knee_protector', '保護膝頭个': 'knee_protector', '護膝': 'knee_protector', '泅水衫': 'swimsuit',
-  '羽絨衫': 'puffer_jacket', '膨線衫': 'sweater'
+export const displayEntityByChinese: Record<string, string> = {
+  '藍衫': 'hakka_shirt', '客家藍衫': 'hakka_shirt',
+  '短衫': 'short_shirt', '短袖': 'short_shirt', '短袖衫': 'short_shirt',
+  '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '裙子': 'skirt',
+  '鞋': 'shoes', '鞋子': 'shoes',
+  '水靴筒': 'rain_boots', '水靴': 'rain_boots', '水鞋笐': 'rain_boots', '雨鞋': 'rain_boots', '雨靴': 'rain_boots', '雨鞋／雨靴': 'rain_boots',
+  '帽仔': 'hat', '帽': 'hat', '帽子': 'hat',
+  '泅水帽': 'swim_cap', '泅水帽仔': 'swim_cap', '泳帽': 'swim_cap',
+  '頸圍仔': 'scarf', '頸纏仔': 'scarf', '頸圍': 'scarf', '圍巾': 'scarf',
+  '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector', '保護膝頭个': 'knee_protector', '護膝': 'knee_protector',
+  '泅水衫': 'swimsuit', '泳衣': 'swimsuit',
+  '羽絨衫': 'puffer_jacket', '羽絨衣': 'puffer_jacket',
+  '膨線衫': 'sweater', '膨紗衫': 'sweater', '毛衣': 'sweater'
+}
+
+export function getItemEntityId(term?: string): string {
+  if (!term) return ''
+  const trimmed = term.trim()
+  return displayEntityByChinese[trimmed] || trimmed
+}
+
+export function isSameItem(term1?: string, term2?: string): boolean {
+  if (!term1 || !term2) return term1 === term2
+  if (term1 === term2) return true
+  const id1 = getItemEntityId(term1)
+  const id2 = getItemEntityId(term2)
+  return id1 === id2
 }
 
 const colorLabels: Record<string, string> = { 

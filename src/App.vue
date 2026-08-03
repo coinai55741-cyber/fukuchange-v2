@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, isSameItem, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -125,14 +125,14 @@ const promptTargetId = computed(() => {
   if (!question) return undefined
   return Object.values(question.target).find((id) => {
     const item = clothing.find((entry) => entry.id === id)
-    return item?.name === question.item && (!question.color || isSameColor(item.color, question.color))
+    return isSameItem(item?.name, question.item) && (!question.color || isSameColor(item?.color, question.color))
   })
 })
 const promptTargetItem = computed(() => clothing.find((item) => item.id === promptTargetId.value))
 const requiredSlots = computed<Slot[]>(() => {
   const q = currentQuestion.value
   if (!q) return ['body', 'pants', 'shoes']
-  const isWater = q.tags?.includes('水上') || q.item === '泅水帽' || q.item === '泅水衫'
+  const isWater = q.tags?.includes('水上') || isSameItem(q.item, '泅水帽') || isSameItem(q.item, '泅水衫')
   const baseSlots: Slot[] = isWater ? ['body'] : ['body', 'pants', 'shoes']
   const targetSlot = promptTargetItem.value?.slot
   if (targetSlot && !baseSlots.includes(targetSlot)) {
@@ -1229,7 +1229,7 @@ function submitOutfit() {
   const itemName = equippedTargetItem.name
   const colorName = question.color ? equippedTargetItem.color : 'X'
 
-  const isWaterLevel = question.tags?.includes('水上') || question.item === '泅水帽' || question.item === '泅水衫'
+  const isWaterLevel = question.tags?.includes('水上') || isSameItem(question.item, '泅水帽') || isSameItem(question.item, '泅水衫')
   const baseOccasions = question.tags?.filter(t => t !== '冷' && t !== '熱' && t !== '亮' && t !== '暗' && t !== 'rain' && t !== '下雨' && t !== 'color') || []
   if (isWaterLevel && !baseOccasions.includes('水上')) {
     baseOccasions.push('水上')
@@ -1287,12 +1287,12 @@ function submitOutfit() {
     }
   }
 
-  if (isValid && itemName === '藍衫' && colorName !== 'X') {
+  if (isValid && isSameItem(itemName, '藍衫') && colorName !== 'X') {
     isValid = false
     reasonText = feedbackMessage('hakka_shirt_color_conflict', '「藍衫」本身已具備藍色，不可再搭配其他顏色形容詞。')
   }
 
-  const isItemMatch = currentLevel.allowedItems.includes(itemName)
+  const isItemMatch = currentLevel.allowedItems.some(item => isSameItem(item, itemName))
   const isColorMatch = currentLevel.allowedColors.length === 0 || currentLevel.allowedColors.includes(colorName)
   const isTargetMatch = isItemMatch && isColorMatch
 
