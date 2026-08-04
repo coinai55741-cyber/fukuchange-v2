@@ -353,6 +353,13 @@ checkSemanticConflict()
 3. 特殊語意檢查  
    例如熱天不穿羽絨衣、非水上活動不戴泳帽、下雨/打掃才適合雨鞋。
 
+重要：衣物規則目前已改用穩定 ID 判斷，不再用畫面上的中文名稱判斷。
+
+- 衣物內部會帶 `entityId`，例如 `knee_protector`、`rain_boots`、`swim_cap`。
+- `allowedItems`、`deny_items`、`target_outfit_ids` 等判斷會先轉成 ID 後再比對。
+- 顯示文字可以依六腔改變，但驗證邏輯不會因「膝頭落仔 / 護膝」等不同腔別名稱而誤判。
+- 後續新增衣物時，請優先確認字典 ID、題庫 ID、衣櫃資料 `entityId` 是否一致。
+
 ### 7.4 特殊情境規則
 
 以下規則屬於企劃定義的特殊情境，不只是單純比對題目指定的衣物/顏色。工程師串接或調整題庫時，請優先保留這些判斷。
@@ -440,6 +447,31 @@ data/i18n/dictionary_entries.csv
 npm run sync-i18n
 ```
 
+目前同步後會影響：
+
+- 穿搭小詞典顯示。
+- 題目 Badge 內的客語字 / 拼音。
+- 衣櫃卡片與無障礙朗讀文字。
+- 回饋文案裡 `{item}`、`{color}` 這類變數的顯示名稱。
+
+不會影響：
+
+- 驗證邏輯本身。驗證仍使用穩定 ID。
+- 題目抽題規則。抽題仍看題庫 CSV 的 `Pool`、`item`、`true_color` 等欄位。
+
+資料關係建議維持：
+
+```text
+dictionary_entries.xlsx / dictionary_entries.csv
+  負責：六腔客語字、拼音、中文釋義
+
+穿搭小達人 - 出題架構.csv
+  負責：題目、可抽衣物、可抽顏色、禁止規則、指定答案
+
+src/gameData.ts
+  負責：衣櫃素材、穿在角色上的圖層、衣物 entityId
+```
+
 ### 9.1 六腔欄位
 
 目前保留：
@@ -452,6 +484,13 @@ npm run sync-i18n
 - 南四縣客語字 / 南四縣拼音
 
 若欄位填 `V`，前端會照樣顯示 `V`，用來提醒還沒補翻譯。
+
+注意：
+
+- `V` 不會自動 fallback 成四縣腔。
+- 客語字欄位填 `V`，畫面就顯示 `V`。
+- 拼音欄位填 `V`，拼音題也會顯示 `V`。
+- 空白欄位才會以中文釋義作為最低限度保底，避免畫面完全空白。
 
 ### 9.2 中文釋義
 
@@ -493,6 +532,25 @@ type Clothing = {
   blacklist: string[]
 }
 ```
+
+### 10.1.1 衣物 ID 與顯示名稱分工
+
+衣物資料目前分成兩層：
+
+| 類型 | 用途 | 範例 |
+|---|---|---|
+| 穩定 ID / `entityId` | 程式判斷、驗證、抽題去重 | `knee_protector` |
+| 顯示名稱 | 畫面文字、詞典、無障礙朗讀 | 四縣：`膝頭落仔`；詔安：`護膝` |
+
+請不要用畫面名稱做規則判斷。  
+例如同一個物件在不同腔別可能顯示不同字，但它仍然是同一個 `entityId`。
+
+新增衣物時請確認：
+
+1. `data/i18n/dictionary_entries.xlsx` 有對應 ID。
+2. `src/gameData.ts` 的衣櫃衣物有正確 `entityId`。
+3. 題庫裡的 `item`、`deny_items`、`target_outfit_ids` 能對應到同一個 ID。
+4. 若有回饋文案使用 `{item}`，前端會依目前腔別顯示該 ID 的客語字。
 
 衣物標籤資料來自：
 
@@ -783,7 +841,6 @@ vite.config.ts
 
 - `data/dummy/` 裡是備用/內部參考資料，目前不被正式遊戲讀取。
 - `data/i18n/dictionary_entries.xlsx` 保留給企劃填寫，不是前端直接讀取；前端讀 CSV。
-- `data/music/S2_m2_bgmloop.mp3` 目前本機有未提交修改，請確認是否為最新版背景音樂。
 - 題目邏輯仍有少量特殊規則寫在 `src/App.vue`，例如婚宴/拜年黑白色比例、冷熱衣物、泳裝場景、雨鞋場景。若未來題庫更常調整，建議把特殊規則逐步資料化。
 
 ## 18. 常見修改位置
@@ -798,6 +855,8 @@ vite.config.ts
 | 特定顏色最多幾件 | `limited_color` / `limited_color_max` |
 | 玩家提示文案 | `data/quiz/feedback_messages.csv` |
 | 客語字/拼音/中文釋義 | `data/i18n/dictionary_entries.xlsx` → 匯出 CSV |
+| 回饋文案裡的 `{item}` / `{color}` 顯示 | `data/i18n/dictionary_entries.xlsx` → 匯出 CSV |
+| 衣物規則判斷 ID | `data/quiz/穿搭小達人 - 出題架構.csv` + `src/gameData.ts` |
 | 衣櫃圖片 | `data/images/` + `src/gameData.ts` |
 | 角色穿搭 | `data/spine/` + `src/SpineAvatar.vue` |
 | 排行榜串接 | `src/leaderboardService.ts` |

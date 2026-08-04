@@ -1,12 +1,14 @@
 import quizCsv from '../data/quiz/穿搭小達人 - 出題架構.csv?raw'
 import tagsCsv from '../data/quiz/穿搭小達人 - 單字標籤.csv?raw'
 import feedbackMessagesCsv from '../data/quiz/feedback_messages.csv?raw'
+import { dynamicItemEntityMap } from './dictionaryData'
 
 export type Slot = 'head' | 'neck' | 'body' | 'pants' | 'knee' | 'shoes'
 export type ClosetTab = 'tops' | 'bottoms' | 'shoes' | 'accessories'
 
 export type Clothing = {
   id: string
+  entityId: string
   name: string
   color: string
   colorKey: 'blue' | 'yellow' | 'white' | 'black' | 'orange' | 'purple' | 'red_flower_pattern'
@@ -50,6 +52,35 @@ function splitList(value = '') {
   return value.split(/[\s,\n\r,、，]+/).map(s => s.trim()).filter(Boolean)
 }
 
+export const displayEntityByChinese: Record<string, string> = {
+  '藍衫': 'hakka_shirt', '客家藍衫': 'hakka_shirt',
+  '短衫': 'short_shirt', '短袖': 'short_shirt', '短袖衫': 'short_shirt',
+  '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '裙子': 'skirt',
+  '鞋': 'shoes', '鞋子': 'shoes',
+  '水靴筒': 'rain_boots', '水靴': 'rain_boots', '水鞋笐': 'rain_boots', '雨鞋': 'rain_boots', '雨靴': 'rain_boots', '雨鞋／雨靴': 'rain_boots',
+  '帽仔': 'hat', '帽': 'hat', '帽子': 'hat',
+  '泅水帽': 'swim_cap', '泅水帽仔': 'swim_cap', '泳帽': 'swim_cap',
+  '頸圍仔': 'scarf', '頸纏仔': 'scarf', '頸圍': 'scarf', '圍巾': 'scarf',
+  '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector', '保護膝頭个': 'knee_protector', '護膝': 'knee_protector',
+  '泅水衫': 'swimsuit', '泳衣': 'swimsuit',
+  '羽絨衫': 'puffer_jacket', '羽絨衣': 'puffer_jacket',
+  '膨線衫': 'sweater', '膨紗衫': 'sweater', '毛衣': 'sweater'
+}
+
+export function getItemEntityId(term?: string): string {
+  if (!term) return ''
+  const trimmed = term.trim()
+  return dynamicItemEntityMap[trimmed] || displayEntityByChinese[trimmed] || trimmed
+}
+
+export function isSameItem(term1?: string, term2?: string): boolean {
+  if (!term1 || !term2) return term1 === term2
+  if (term1 === term2) return true
+  const id1 = getItemEntityId(term1)
+  const id2 = getItemEntityId(term2)
+  return id1 === id2
+}
+
 export const tabs: { id: ClosetTab; label: string; icon: string }[] = [
   { id: 'tops', label: '上衣', icon: '👕' },
   { id: 'bottoms', label: '下身', icon: '🩳' },
@@ -83,7 +114,7 @@ function parseCsv(raw: string): CsvRow[] {
 
 // Parse Vocabulary Tags from CSV
 const parsedTags = parseCsv(tagsCsv)
-const itemDataByName: Record<string, {
+const itemDataByEntityId: Record<string, {
   type: string
   verbs: string[]
   weather: string[]
@@ -93,14 +124,15 @@ const itemDataByName: Record<string, {
 
 for (const row of parsedTags) {
   if (row.type === 'color') continue
+  const entityId = row.id?.trim()
   const name = row.item_name.trim()
-  if (!name) continue
+  if (!name && !entityId) continue
   const allTags = row.tags ? row.tags.split(/[\s,\n\r、，]+/).map(s => s.trim()).filter(Boolean) : []
   const weather = allTags.filter(t => t === '冷' || t === '熱')
   const occasions = allTags.filter(t => t !== '冷' && t !== '熱')
   const blacklist = row.must_not ? row.must_not.split(/[\s,\n\r、，]+/).map(s => s.trim()).filter(Boolean) : []
   const verbs = row.must_verb ? row.must_verb.split(/[\s,\n\r、，]+/).map(s => s.trim()).filter(Boolean).map(v => v === '穿' ? '著' : v) : []
-  itemDataByName[name] = {
+  itemDataByEntityId[entityId || getItemEntityId(name)] = {
     type: row.type || 'normal',
     verbs,
     weather,
@@ -120,9 +152,11 @@ const makeClothing = (
   wearLayers = [closetImage],
   colorMode: Clothing['colorMode'] = 'dye'
 ): Clothing => {
-  const meta = itemDataByName[name] ?? { type: 'normal', verbs: [], weather: [], occasions: [], blacklist: [] }
+  const entityId = getItemEntityId(name)
+  const meta = itemDataByEntityId[entityId] ?? { type: 'normal', verbs: [], weather: [], occasions: [], blacklist: [] }
   return {
     id,
+    entityId,
     name,
     color,
     colorKey,
@@ -161,7 +195,7 @@ const baseClothing: Clothing[] = [
   makeClothing('head-black', '帽仔', '烏色', 'black', 'head', 'accessories', 'hat.png'),
   makeClothing('head-swim-cap-yellow', '泅水帽', '黃色', 'yellow', 'head', 'accessories', 'head-swin.png'),
   makeClothing('neck-white', '頸圍仔', '白色', 'white', 'neck', 'accessories', 'scarf_B.png'),
-  makeClothing('knee-yellow', '護膝', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
+  makeClothing('knee-yellow', '膝頭落仔', '黃色', 'yellow', 'knee', 'accessories', 'knee_protector_B.png'),
   makeClothing('pants-shorts-black', '短褲', '烏色', 'black', 'pants', 'bottoms', 'shorts_B.png'),
   makeClothing('head-white', '帽仔', '白色', 'white', 'head', 'accessories', 'hat.png'),
   makeClothing('pants-long-yellow', '長褲', '黃色', 'yellow', 'pants', 'bottoms', 'long_pants_B.png'),
@@ -203,10 +237,10 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', rainBootDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png', fullDyeColors),
-  ...makeDyeVariants('knee-protector', '護膝', 'knee', 'accessories', 'knee_protector_B.png'),
+  ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),
   ...makeDyeVariants('swim-cap', '泅水帽', 'head', 'accessories', 'head-swin.png'),
 ].filter((item) => {
-  const key = `${item.name}-${item.color}`
+  const key = `${item.entityId}-${item.color}`
   if (seenDyes.has(key)) {
     return false
   }
@@ -227,37 +261,6 @@ const slotByEntity: Record<string, Slot> = {
   hakka_shirt: 'body', short_shirt: 'body', puffer_jacket: 'body', sweater: 'body', swimsuit: 'body',
   shorts: 'pants', long_pants: 'pants', skirt: 'pants', shoes: 'shoes', rain_boots: 'shoes',
   hat: 'head', swim_cap: 'head', scarf: 'neck', knee_protector: 'knee',
-}
-
-export const displayEntityByChinese: Record<string, string> = {
-  '藍衫': 'hakka_shirt', '客家藍衫': 'hakka_shirt',
-  '短衫': 'short_shirt', '短袖': 'short_shirt', '短袖衫': 'short_shirt',
-  '短褲': 'shorts', '長褲': 'long_pants', '裙': 'skirt', '裙子': 'skirt',
-  '鞋': 'shoes', '鞋子': 'shoes',
-  '水靴筒': 'rain_boots', '水靴': 'rain_boots', '水鞋笐': 'rain_boots', '雨鞋': 'rain_boots', '雨靴': 'rain_boots', '雨鞋／雨靴': 'rain_boots',
-  '帽仔': 'hat', '帽': 'hat', '帽子': 'hat',
-  '泅水帽': 'swim_cap', '泅水帽仔': 'swim_cap', '泳帽': 'swim_cap',
-  '頸圍仔': 'scarf', '頸纏仔': 'scarf', '頸圍': 'scarf', '圍巾': 'scarf',
-  '膝頭落仔': 'knee_protector', '膝頭落': 'knee_protector', '保護膝頭个': 'knee_protector', '護膝': 'knee_protector',
-  '泅水衫': 'swimsuit', '泳衣': 'swimsuit',
-  '羽絨衫': 'puffer_jacket', '羽絨衣': 'puffer_jacket',
-  '膨線衫': 'sweater', '膨紗衫': 'sweater', '毛衣': 'sweater'
-}
-
-import { dynamicItemEntityMap } from './dictionaryData'
-
-export function getItemEntityId(term?: string): string {
-  if (!term) return ''
-  const trimmed = term.trim()
-  return dynamicItemEntityMap[trimmed] || displayEntityByChinese[trimmed] || trimmed
-}
-
-export function isSameItem(term1?: string, term2?: string): boolean {
-  if (!term1 || !term2) return term1 === term2
-  if (term1 === term2) return true
-  const id1 = getItemEntityId(term1)
-  const id2 = getItemEntityId(term2)
-  return id1 === id2
 }
 
 const colorLabels: Record<string, string> = { 
@@ -283,18 +286,10 @@ function findClothingId(entity: string, colorKey: string): string | undefined {
   const key = `${entity}@${colorKey}`
   if (targetItemIds[key]) return targetItemIds[key]
 
-  const entityToNameMap: Record<string, string> = {
-    hakka_shirt: '藍衫', short_shirt: '短衫', shorts: '短褲', long_pants: '長褲', skirt: '裙',
-    puffer_jacket: '羽絨衫', sweater: '膨線衫', swimsuit: '泅水衫', scarf: '頸圍仔', hat: '帽仔',
-    shoes: '鞋', knee_protector: '護膝', rain_boots: '水靴筒', swim_cap: '泅水帽'
-  }
-  const name = entityToNameMap[entity]
-  if (!name) return undefined
-
   let searchColorKey = colorKey
   if (colorKey === 'dark_green') searchColorKey = 'purple'
 
-  const found = clothing.find(c => c.name === name && c.colorKey === searchColorKey)
+  const found = clothing.find(c => c.entityId === entity && c.colorKey === searchColorKey)
   return found?.id
 }
 

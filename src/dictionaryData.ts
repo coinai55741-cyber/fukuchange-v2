@@ -68,7 +68,6 @@ function toBoolean(value: string) {
 
 export function getDictionaryItems(dialect: DialectCode = 'hak-sihien') {
   const fields = DIALECT_FIELDS[dialect] ?? DIALECT_FIELDS['hak-sihien']
-  const fallbackFields = DIALECT_FIELDS['hak-sihien']
 
   return parseCsv(dictionaryEntriesCsv)
     .filter(row => row['啟用'] !== '否')
@@ -77,8 +76,8 @@ export function getDictionaryItems(dialect: DialectCode = 'hak-sihien') {
       const textRaw = row[fields.text]?.trim()
       const pinyinRaw = row[fields.pinyin]?.trim()
 
-      const text = (textRaw && textRaw !== 'V') ? textRaw : (row[fallbackFields.text] && row[fallbackFields.text] !== 'V' ? row[fallbackFields.text] : row['中文釋義'])
-      const pinyin = (pinyinRaw && pinyinRaw !== 'V') ? pinyinRaw : (row[fallbackFields.pinyin] && row[fallbackFields.pinyin] !== 'V' ? row[fallbackFields.pinyin] : '')
+      const text = textRaw || row['中文釋義']
+      const pinyin = pinyinRaw || ''
 
       return {
         id: row['資料ID'],
@@ -139,7 +138,7 @@ export function getHakkaSentenceComponents(
   isPinyinQuestion: boolean,
   pinyinField: 'color' | 'item'
 ) {
-  const effectiveDialect: DialectCode = (dialect === 'hak-raoping' || dialect === 'hak-zhaoan') ? 'hak-sihien' : dialect
+  const effectiveDialect: DialectCode = dialect
   const items = getDictionaryItems(effectiveDialect)
 
   // Item Entry & Name / Pinyin using dynamic CSV entity map
@@ -168,36 +167,12 @@ export function getHakkaSentenceComponents(
     const isFlower = color === '紅色花圖案' || color === '紅色花布'
     const colorEntry = items.find(i => i.translation === color || i.name === color || (isFlower && i.id === 'red_flower_pattern'))
 
-    if (isFlower) {
-      if (isPinyinQuestion && pinyinField === 'color') {
-        if (effectiveDialect === 'hak-hailu') {
-          colorText = 'faˊ bu做个'
-        } else if (effectiveDialect === 'hak-dapu') {
-          colorText = 'fa⁺色个'
-        } else if (effectiveDialect === 'hak-namsihien') {
-          colorText = 'faˊ buˋ仔个'
-        } else {
-          colorText = 'fungˇ sedˋ faˊ bu个'
-        }
-      } else {
-        if (effectiveDialect === 'hak-hailu') {
-          colorText = '花布做个'
-        } else if (effectiveDialect === 'hak-dapu') {
-          colorText = '花色个'
-        } else if (effectiveDialect === 'hak-namsihien') {
-          colorText = '花布仔个'
-        } else {
-          colorText = '花布色个'
-        }
-      }
+    const colorWord = colorEntry?.name || color
+    const colorPinyin = colorEntry?.pinyin || color
+    if (isPinyinQuestion && pinyinField === 'color') {
+      colorText = `${colorPinyin}个`
     } else {
-      const colorWord = colorEntry?.name || color
-      const colorPinyin = colorEntry?.pinyin || color
-      if (isPinyinQuestion && pinyinField === 'color') {
-        colorText = `${colorPinyin} 个 `
-      } else {
-        colorText = `${colorWord}个`
-      }
+      colorText = `${colorWord}个`
     }
   }
 
@@ -209,7 +184,7 @@ export function getHakkaSentenceComponents(
     badgeText,
     fullText,
     effectiveDialect,
-    isFallback: dialect === 'hak-raoping' || dialect === 'hak-zhaoan'
+    isFallback: false
   }
 }
 

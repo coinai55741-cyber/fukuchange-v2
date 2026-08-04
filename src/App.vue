@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, isSameItem, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
+import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, isSameItem, getItemEntityId, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
 import SpineAvatar from './SpineAvatar.vue'
@@ -280,16 +280,30 @@ const vocabularyLookupIds: Record<string, string> = {
 function dictionaryEntryForTerm(value: string) {
   const lookupId = vocabularyLookupIds[value]
   return dictionaryEntries.value.find(item =>
+    item.id === value ||
     (lookupId && item.id === lookupId) ||
     item.name === value ||
     item.translation === value
   )
 }
 
+function dictionaryEntryForId(id: string) {
+  return dictionaryEntries.value.find(item => item.id === id)
+}
+
 function localizedVocabularyName(value: string) {
   const entry = dictionaryEntryForTerm(value)
   if (!entry?.name) return value
   return entry.name
+}
+
+function localizedClothingName(item: Clothing) {
+  return dictionaryEntryForId(item.entityId)?.name || localizedVocabularyName(item.name)
+}
+
+function localizedClothingColor(item: Clothing) {
+  if (item.color === '無' || item.color === 'X') return ''
+  return localizedVocabularyName(item.color)
 }
 
 function localizedVocabularyListText(values: string[], separator = ' 或 ') {
@@ -454,24 +468,25 @@ function shuffle<T>(values: T[]) {
 
 function materializeQuestionColor(question: Question): Question {
   if (!question.requireColor) return question
+  const questionItemId = getItemEntityId(question.item)
 
   const colorOptions = (question.colorOptions ?? []).filter((colorName) =>
-    clothing.some((item) => item.name === question.item && isSameColor(item.color, colorName))
+    clothing.some((item) => item.entityId === questionItemId && isSameColor(item.color, colorName))
   )
   if (!colorOptions.length) return question
 
   const color = shuffle(colorOptions)[0]
-  const targetItem = clothing.find((item) => item.name === question.item && isSameColor(item.color, color))
+  const targetItem = clothing.find((item) => item.entityId === questionItemId && isSameColor(item.color, color))
   if (!targetItem) return question
   const target = { ...question.target, [targetItem.slot]: targetItem.id }
 
-  if (question.item === '泅水帽') {
-    const swimsuit = clothing.find((item) => item.name === '泅水衫' && isSameColor(item.color, color))
+  if (questionItemId === 'swim_cap') {
+    const swimsuit = clothing.find((item) => item.entityId === 'swimsuit' && isSameColor(item.color, color))
     if (swimsuit) target.body = swimsuit.id
   }
 
-  if (question.item === '泅水衫') {
-    const swimCap = clothing.find((item) => item.name === '泅水帽' && item.color === color)
+  if (questionItemId === 'swimsuit') {
+    const swimCap = clothing.find((item) => item.entityId === 'swim_cap' && item.color === color)
     if (swimCap) target.head = swimCap.id
   }
 
@@ -885,38 +900,40 @@ function chooseCard(id: string, slot: Slot) {
   playSound('click')
   const item = clothing.find(c => c.id === id)
   if (!item) return
+  const colorLabel = localizedClothingColor(item)
+  const itemLabel = localizedClothingName(item)
 
   if (selected.value[slot] === id) {
     const next = { ...selected.value }
     delete next[slot]
     selected.value = next
-    closetAnnouncement.value = `已取消${item.color}${item.name}`
+    closetAnnouncement.value = `已取消${colorLabel}${itemLabel}`
   } else {
     const next = { ...selected.value }
     
     // Swimsuit (泅水衫) occupies both body and pants conceptually.
-    if (item.name === '泅水衫') {
+    if (item.entityId === 'swimsuit') {
       delete next['pants']
     }
     
     if (slot === 'pants') {
       const currentBodyId = next['body']
       const currentBodyItem = clothing.find(c => c.id === currentBodyId)
-      if (currentBodyItem?.name === '泅水衫') {
+      if (currentBodyItem?.entityId === 'swimsuit') {
         delete next['body']
       }
     }
 
     next[slot] = id
     selected.value = next
-    closetAnnouncement.value = `已選取${item.color}${item.name}`
+    closetAnnouncement.value = `已選取${colorLabel}${itemLabel}`
   }
   feedback.value = null
 }
 
 function clothingCardAriaLabel(card: Clothing) {
   const isSelected = selected.value[card.slot] === card.id
-  return `${card.color}${card.name}，${isSelected ? '已選取，點擊可取消' : '未選取，點擊可穿上'}`
+  return `${localizedClothingColor(card)}${localizedClothingName(card)}，${isSelected ? '已選取，點擊可取消' : '未選取，點擊可穿上'}`
 }
 
 function focusClosetSlot(tab: ClosetTab) {
@@ -987,7 +1004,7 @@ function clearSlot(slot: Slot) {
   const next = { ...selected.value }
   delete next[slot]
   selected.value = next
-  if (item) closetAnnouncement.value = `已取消${item.color}${item.name}`
+  if (item) closetAnnouncement.value = `已取消${localizedClothingColor(item)}${localizedClothingName(item)}`
   feedback.value = null
 }
 
@@ -1187,8 +1204,12 @@ function checkDressedDecency(q: Question, selectedMap: Partial<Record<Slot, stri
 
 const clothingOccasions = new Set(['日常', '運動', '正式', '喜慶'])
 
-function validateItem(item: { name: string; type: string; weather: string[]; blacklist: string[]; occasions: string[]; verbs: string[] }, currentLevel: any, verb: string, isTargetCheck = false) {
-  if (currentLevel.denyItems?.includes(item.name)) {
+function validateItem(item: { entityId?: string; name: string; type: string; weather: string[]; blacklist: string[]; occasions: string[]; verbs: string[] }, currentLevel: any, verb: string, isTargetCheck = false) {
+  const itemEntityId = item.entityId || getItemEntityId(item.name)
+  const denyItemIds = currentLevel.denyItemIds ?? currentLevel.denyItems?.map((name: string) => getItemEntityId(name)) ?? []
+  const allowedItemIds = currentLevel.allowedItemIds ?? currentLevel.allowedItems?.map((name: string) => getItemEntityId(name)) ?? []
+
+  if (denyItemIds.includes(itemEntityId)) {
     return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `「${item.name}」不符合此場合喔！`, { occasion: currentLevel.occasions.join('、'), item: item.name }) }
   }
 
@@ -1210,8 +1231,8 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       return { valid: false, reason: feedbackMessage('item_verb_mismatch', `題目指定的說法，和「{item}」不太搭喔！`, { verb, item: item.name, itemVerbs: item.verbs.join(', ') }) }
     }
 
-    if (currentLevel.allowedItems && currentLevel.allowedItems.length > 0) {
-      if (!currentLevel.allowedItems.includes(item.name)) {
+    if (allowedItemIds.length > 0) {
+      if (!allowedItemIds.includes(itemEntityId)) {
         return { valid: false, reason: feedbackMessage('item_requirement_mismatch', `請改穿黃色標籤指定的衣物喔！`, { allowedItems: currentLevel.allowedItems.join(' 或 ') }) }
       }
     }
@@ -1223,7 +1244,7 @@ function validateItem(item: { name: string; type: string; weather: string[]; bla
       return { valid: false, reason: feedbackMessage('rain_boot_context_mismatch', `這個情境比較不需要穿「{item}」喔！`, { item: item.name }) }
     }
   } else if (item.type === 'water') {
-    const isWaterLevel = currentLevel.occasions.includes('水上') || currentLevel.allowedItems?.includes('泅水帽') || currentLevel.allowedItems?.includes('泅水衫')
+    const isWaterLevel = currentLevel.occasions.includes('水上') || allowedItemIds.includes('swim_cap') || allowedItemIds.includes('swimsuit')
     if (!isWaterLevel) {
       return { valid: false, reason: feedbackMessage('water_context_mismatch', `「${item.name}」為水上活動的裝備。`, { item: item.name }) }
     }
@@ -1374,9 +1395,11 @@ function submitOutfit() {
     allowedVerbs: question.verb ? [question.verb] : [],
     allowedColors: question.allowColors?.length ? question.allowColors : splitQuestionValues(question.color),
     allowedItems: splitQuestionValues(question.item),
+    allowedItemIds: splitQuestionValues(question.item).map((item) => getItemEntityId(item)),
     denyColors: question.denyColors ?? [],
     denyColorFeedbackKey: question.denyColorFeedbackKey || '',
     denyItems: question.denyItems ?? [],
+    denyItemIds: (question.denyItems ?? []).map((item) => getItemEntityId(item)),
     limitedColor: question.limitedColor || '',
     limitedColorMax: question.limitedColorMax,
     limitedColorFeedbackKey: question.limitedColorFeedbackKey || ''
@@ -1422,7 +1445,7 @@ function submitOutfit() {
     reasonText = feedbackMessage('hakka_shirt_color_conflict', '藍衫本身就是藍染衣服，不需要再選其他顏色喔！')
   }
 
-  const isItemMatch = currentLevel.allowedItems.some(item => isSameItem(item, itemName))
+  const isItemMatch = currentLevel.allowedItemIds.some((itemId: string) => itemId === equippedTargetItem.entityId)
   const isColorMatch = currentLevel.allowedColors.length === 0 || currentLevel.allowedColors.includes(colorName)
   const isTargetMatch = isItemMatch && isColorMatch
 
