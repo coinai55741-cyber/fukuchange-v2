@@ -758,6 +758,10 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
             is_hot = '熱' in tags
             is_cleaning = '打掃' in tags or '大掃除' in ctx or '打掃' in ctx
             is_swimming = 'water' in tags or '泳池' in ctx or '泅水' in ctx
+            is_interview = question.get('stageId') == 8 or '面試' in ctx or '就職' in ctx
+
+            if is_interview and item.entityId == 'hakka_shirt':
+                return False
 
             if is_cold:
                 if item.entityId in ['skirt', 'swimsuit', 'shorts']:
