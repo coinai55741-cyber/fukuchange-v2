@@ -216,6 +216,7 @@ const rainBootDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
 const fullDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
   { name: '烏色', key: 'black' },
   { name: '黃色', key: 'yellow' },
+  { name: '白色', key: 'white' },
   ...dyeColors,
 ]
 
@@ -228,12 +229,12 @@ export const clothing: Clothing[] = [
   ...baseClothing,
   ...makeDyeVariants('short-shirt', '短衫', 'body', 'tops', 'shirt.png'),
   ...makeDyeVariants('puffer-jacket', '羽絨衫', 'body', 'tops', 'puffer_jacket_B.png'),
-  ...makeDyeVariants('sweater', '膨線衫', 'body', 'tops', 'sweater_B.png'),
+  ...makeDyeVariants('sweater', '膨線衫', 'body', 'tops', 'sweater_B.png', fullDyeColors),
   ...makeDyeVariants('swimsuit', '泅水衫', 'body', 'tops', 'swimsuit_B.png'),
-  ...makeDyeVariants('long-pants', '長褲', 'pants', 'bottoms', 'long_pants_B.png'),
+  ...makeDyeVariants('long-pants', '長褲', 'pants', 'bottoms', 'long_pants_B.png', fullDyeColors),
   ...makeDyeVariants('shorts', '短褲', 'pants', 'bottoms', 'shorts_B.png'),
   ...makeDyeVariants('skirt', '裙', 'pants', 'bottoms', 'skirt_B_over.png'),
-  ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png'),
+  ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png', fullDyeColors),
   ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', fullDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png', fullDyeColors),
