@@ -583,6 +583,7 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
     pool1_color_dup_count = 0
     pool2_color_dup_count = 0
     round_context_dup_count = 0
+    closet_contradiction_count = 0
 
     for r in range(1, num_rounds + 1):
         questions = selectTenDiverseQuestions(all_questions)
@@ -749,6 +750,109 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
                         'error_reason': f"Swimming question missing denied items: {missing}."
                     })
 
+        # Check 6: Closet item availability and weather/context compatibility
+        def canShowClosetDistractor(question, item):
+            tags = question.get('tags', [])
+            ctx = question.get('context', '')
+            is_cold = '冷' in tags
+            is_hot = '熱' in tags
+            is_cleaning = '打掃' in tags or '大掃除' in ctx or '打掃' in ctx
+            is_swimming = 'water' in tags or '泳池' in ctx or '泅水' in ctx
+
+            if is_cold:
+                if item.entityId in ['skirt', 'swimsuit', 'shorts']:
+                    return False
+            if is_hot:
+                if item.entityId in ['puffer_jacket', 'sweater', 'scarf']:
+                    return False
+            if not is_swimming and item.entityId == 'swimsuit':
+                return False
+            if not is_cleaning:
+                return True
+            if item.entityId == 'skirt':
+                return False
+            if item.id == 'neck-white' or item.id.startswith('scarf-'):
+                return False
+            if item.entityId == 'rain_boots':
+                return True
+            if item.entityId == 'shoes':
+                return item.color in ['烏色', '吊菜色']
+            if item.slot == 'pants':
+                return item.color not in ['柑仔色', '黃色']
+            return True
+
+        def checkClothingFit(q, item):
+            tags = q.get('tags', [])
+            ctx = q.get('context', '')
+            is_hot = '熱' in tags
+            is_cold = '冷' in tags
+            is_cleaning = '打掃' in tags or '大掃除' in ctx or '打掃' in ctx
+            is_swimming = 'water' in tags or '泳池' in ctx or '泅水' in ctx
+
+            name = item.name
+            entity = item.entityId
+            color = item.color
+
+            warm_clothing = ['羽絨衫', '膨線衫', '頸圍仔']
+            if name in warm_clothing and is_hot:
+                return False, f"大熱天穿「{item.name}」會太熱"
+            if is_cold and entity in ['skirt', 'swimsuit', 'shorts']:
+                return False, f"大冷天穿「{item.name}」會太冷"
+            if name == '水靴筒' and not (is_cleaning or '雨' in ctx or 'rain' in tags):
+                return False, f"非雨天或打掃穿「{item.name}」"
+            if name in ['泅水帽', '泅水衫'] and not (is_swimming or '水上' in tags):
+                return False, f"非水上活動穿「{item.name}」"
+            if is_cleaning:
+                if entity == 'skirt':
+                    return False, "打掃穿裙"
+                if item.id == 'neck-white' or item.id.startswith('scarf-'):
+                    return False, "打掃戴圍巾"
+                if entity == 'shoes' and color not in ['烏色', '吊菜色']:
+                    return False, "打掃穿淺色鞋"
+                if item.slot == 'pants' and color in ['柑仔色', '黃色']:
+                    return False, "打掃穿淺色褲"
+            return True, ""
+
+        def prepareCloset(question):
+            required_ids = set(question.get('target', {}).values())
+            tabs_map = {
+                'tops': ['body'],
+                'bottoms': ['pants'],
+                'shoes': ['shoes'],
+                'accessories': ['head', 'neck', 'knee']
+            }
+            closet = {}
+            for t_name, slots in tabs_map.items():
+                in_tab = [item for item in clothing if item.slot in slots]
+                guaranteed = [item for item in in_tab if item.id in required_ids]
+                distractors = [item for item in in_tab if item.id not in required_ids and canShowClosetDistractor(question, item)]
+                random.shuffle(distractors)
+                selected = guaranteed + distractors[:max(0, 3 - len(guaranteed))]
+                closet[t_name] = selected
+            return closet
+
+        tab_for_slot = {'body': 'tops', 'pants': 'bottoms', 'shoes': 'shoes', 'head': 'accessories', 'neck': 'accessories', 'knee': 'accessories'}
+
+        for idx, q in enumerate(questions):
+            closet = prepareCloset(q)
+            req_slots = q.get('requiredSlots', ['body', 'pants', 'shoes'])
+            req_tabs = set(tab_for_slot[s] for s in req_slots if s in tab_for_slot)
+            for t_name in req_tabs:
+                tab_items = closet.get(t_name, [])
+                valid_items = [item for item in tab_items if checkClothingFit(q, item)[0]]
+                if len(valid_items) == 0:
+                    closet_contradiction_count += 1
+                    failed_rounds.append({
+                        'round': r,
+                        'pool': 'Pool 1' if idx < 5 else 'Pool 2',
+                        'question_index': idx + 1,
+                        'stage_id': q['stageId'],
+                        'item': q['item'],
+                        'color': q.get('color', ''),
+                        'context_text': q['context'],
+                        'error_reason': f"Closet tab '{t_name}' has ZERO valid clothing items matching weather/context."
+                    })
+
     # Generate Report
     total_questions = num_rounds * 10
     num_failures = len(failed_rounds)
@@ -766,7 +870,8 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
     report.append(f"- 是否出現第 10 題空白：{'是' if empty_10th_count > 0 else '否'} ({empty_10th_count} 次)")
     report.append(f"- 是否出現同池衣物重複：{'是' if (pool1_item_dup_count + pool2_item_dup_count) > 0 else '否'} (Pool 1: {pool1_item_dup_count}, Pool 2: {pool2_item_dup_count})")
     report.append(f"- 是否出現同池顏色重複：{'是' if (pool1_color_dup_count + pool2_color_dup_count) > 0 else '否'} (Pool 1: {pool1_color_dup_count}, Pool 2: {pool2_color_dup_count})")
-    report.append(f"- 是否出現情境重複：{'是' if round_context_dup_count > 0 else '否'} ({round_context_dup_count} 次)\n")
+    report.append(f"- 是否出現情境重複：{'是' if round_context_dup_count > 0 else '否'} ({round_context_dup_count} 次)")
+    report.append(f"- 是否出現衣櫃無適合衣物矛盾：{'是' if closet_contradiction_count > 0 else '否'} ({closet_contradiction_count} 次)\n")
 
     report.append("## 失敗輪次明細\n")
     if not failed_rounds:
