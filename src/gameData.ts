@@ -234,7 +234,7 @@ export const clothing: Clothing[] = [
   ...makeDyeVariants('shorts', '短褲', 'pants', 'bottoms', 'shorts_B.png'),
   ...makeDyeVariants('skirt', '裙', 'pants', 'bottoms', 'skirt_B_over.png'),
   ...makeDyeVariants('sneakers', '鞋', 'shoes', 'shoes', 'sneakers_B.png'),
-  ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', rainBootDyeColors),
+  ...makeDyeVariants('rain-boots', '水靴筒', 'shoes', 'shoes', 'rain_boots_B.png', fullDyeColors),
   ...makeDyeVariants('hat', '帽仔', 'head', 'accessories', 'hat.png'),
   ...makeDyeVariants('scarf', '頸圍仔', 'neck', 'accessories', 'scarf_B.png', fullDyeColors),
   ...makeDyeVariants('knee-protector', '膝頭落仔', 'knee', 'accessories', 'knee_protector_B.png'),

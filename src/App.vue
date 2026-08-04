@@ -466,17 +466,30 @@ function shuffle<T>(values: T[]) {
   return [...values].sort(() => Math.random() - 0.5)
 }
 
+function colorOptionsForQuestionItem(question: Question, item: Clothing) {
+  const tags = question.tags ?? []
+  const isDirtyContext = tags.includes('打掃') || tags.includes('rain') || tags.includes('下雨') || question.context.includes('大掃除') || question.context.includes('打掃') || question.context.includes('雨')
+  const baseOptions = question.colorOptions ?? []
+  if (!isDirtyContext) return baseOptions
+
+  if (item.entityId === 'rain_boots') return ['柑仔色', '黃色', '白色', '烏色', '紅色花圖案', '吊菜色']
+  if (item.entityId === 'shoes') return baseOptions.filter((colorName) => ['烏色', '吊菜色'].includes(colorName))
+  if (item.slot === 'pants') return baseOptions.filter((colorName) => !['柑仔色', '黃色'].includes(colorName))
+  return baseOptions
+}
+
 function materializeQuestionColor(question: Question): Question {
   if (!question.requireColor) return question
   const questionItemId = getItemEntityId(question.item)
 
-  const colorOptions = (question.colorOptions ?? []).filter((colorName) =>
-    clothing.some((item) => item.entityId === questionItemId && isSameColor(item.color, colorName))
+  const candidateItems = clothing.filter((item) => item.entityId === questionItemId)
+  const colorOptions = Array.from(new Set(candidateItems.flatMap((item) => colorOptionsForQuestionItem(question, item)))).filter((colorName) =>
+    candidateItems.some((item) => isSameColor(item.color, colorName))
   )
   if (!colorOptions.length) return question
 
   const color = shuffle(colorOptions)[0]
-  const targetItem = clothing.find((item) => item.entityId === questionItemId && isSameColor(item.color, color))
+  const targetItem = candidateItems.find((item) => isSameColor(item.color, color))
   if (!targetItem) return question
   const target = { ...question.target, [targetItem.slot]: targetItem.id }
 
@@ -523,10 +536,17 @@ function preferredDistractorsForQuestion(question: Question | undefined, tab: Cl
 
 function canShowClosetDistractor(question: Question | undefined, item: Clothing) {
   const tags = question?.tags ?? []
-  const isCleaning = tags.includes('打掃') || question?.context.includes('大掃除') || question?.context.includes('打掃')
-  if (!isCleaning) return true
-  if (item.id === 'pants-white' || item.id.startsWith('skirt-')) return false
+  const isCold = tags.includes('冷')
+  const isDirtyContext = tags.includes('打掃') || tags.includes('rain') || tags.includes('下雨') || question?.context.includes('大掃除') || question?.context.includes('打掃') || question?.context.includes('雨')
+
+  if (isCold && item.entityId === 'skirt') return false
+
+  if (!isDirtyContext) return true
+  if (item.entityId === 'skirt') return false
   if (item.id === 'neck-white' || item.id.startsWith('scarf-')) return false
+  if (item.entityId === 'rain_boots') return true
+  if (item.entityId === 'shoes') return ['烏色', '吊菜色'].includes(item.color)
+  if (item.slot === 'pants') return !['柑仔色', '黃色'].includes(item.color)
   return true
 }
 
@@ -1253,8 +1273,21 @@ function validateItem(item: { entityId?: string; name: string; type: string; wea
   return { valid: true }
 }
 
-function validateColor(color: ColorData, currentLevel: any, isTargetCheck = false) {
+function validateColor(color: ColorData, currentLevel: any, isTargetCheck = false, item?: Clothing) {
   const explicitlyAllowed = currentLevel.allowedColors?.includes(color.name)
+  const isDirtyContext = currentLevel.isRaining || currentLevel.occasions.includes('打掃') || currentLevel.colorThemes.includes('打掃')
+
+  if (isDirtyContext && item) {
+    if (item.entityId === 'rain_boots') {
+      return { valid: true }
+    }
+    if (item.entityId === 'shoes' && !['烏色', '吊菜色'].includes(color.name)) {
+      return { valid: false, reason: feedbackMessage('cleaning_bright_color_warning', '亮色系穿搭容易被泥巴弄髒喲！', { color: color.name }) }
+    }
+    if (item.slot === 'pants' && ['柑仔色', '黃色'].includes(color.name)) {
+      return { valid: false, reason: feedbackMessage('cleaning_bright_color_warning', '亮色系穿搭容易被泥巴弄髒喲！', { color: color.name }) }
+    }
+  }
 
   if (currentLevel.denyColors?.includes(color.name)) {
     return { valid: false, reason: feedbackMessage(currentLevel.denyColorFeedbackKey || 'color_occasion_conflict', `「{color}」在這個情境有點不合適喔！`, { occasion: currentLevel.occasions.join('、'), color: color.name }) }
@@ -1315,7 +1348,7 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   }
 
   const warmClothing = ['羽絨衫', '膨線衫', '頸圍仔']
-  if (warmClothing.includes(itemName) && (currentLevel.weather === '熱' || contextText.includes('熱'))) {
+  if (warmClothing.includes(itemName) && currentLevel.weather === '熱') {
     return {
       type: 'seasonal-mismatch',
       reason: feedbackMessage('hot_with_warm_item', `天氣熱時穿「{item}」會太悶熱喔！`, { item: itemName })
@@ -1429,7 +1462,7 @@ function submitOutfit() {
   if (isValid) {
     const colorObj = colorDb[equippedTargetItem.color]
     if (colorObj) {
-      const colorRes = validateColor(colorObj, currentLevel, true)
+      const colorRes = validateColor(colorObj, currentLevel, true, equippedTargetItem)
       if (!colorRes.valid) {
         const isColorBlacklisted = currentLevel.occasions.some(occ => colorObj.blacklist.includes(occ))
         if (isColorBlacklisted) {
@@ -1491,7 +1524,7 @@ function submitOutfit() {
     const colorObj = colorDb[item.color]
     if (colorObj) {
       if (limitedColors.includes(item.color)) continue
-      const colorRes = validateColor(colorObj, currentLevel, false)
+      const colorRes = validateColor(colorObj, currentLevel, false, item)
       if (!colorRes.valid) {
         isContextMatch = false
         contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
