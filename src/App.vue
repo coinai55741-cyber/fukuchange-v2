@@ -9,6 +9,7 @@ import successEmojiData from '../public/emojis/success_1f604.json'
 import failureEmojiData from '../public/emojis/failure_1f62b.json'
 import hotEmojiData from '../public/emojis/hot_1f975.json'
 import coldEmojiData from '../public/emojis/cold_1f976.json'
+import bubbleExplosionSvg from '../public/bubble-explosion.svg'
 
 type Screen = 'intro' | 'lobby' | 'game' | 'result'
 type Feedback = { kind: 'success' | 'error'; text: string; canAdvance?: boolean; emojiData?: any } | null
@@ -1916,6 +1917,10 @@ onBeforeUnmount(() => {
           <p>{{ feedback.text }}</p>
           <button v-if="feedback.canAdvance" class="primary" type="button" @click="advanceQuestion()">{{ questionIndex === 9 ? '查看成績' : '下一題' }}</button>
         </div>
+      </div>
+      <!-- 答對題目時在畫面正中間顯示的 Bubble Explosion 慶祝動畫 -->
+      <div v-if="feedback && feedback.kind === 'success'" class="center-celebration-overlay" aria-hidden="true">
+        <img :src="bubbleExplosionSvg" alt="" class="center-celebration-svg" />
       </div>
       <div v-if="tutorialActive" class="tutorial-overlay" role="dialog" aria-modal="true" :aria-label="`操作介紹，第 ${tutorialStep + 1} 步，共 ${tutorialSteps.length} 步。${currentTutorialStep?.title}。${currentTutorialStep?.text}`" tabindex="0" @click="nextTutorialStep">
         <div v-if="tutorialTargetRect" class="tutorial-highlight" :style="tutorialHighlightStyle" aria-hidden="true"></div>

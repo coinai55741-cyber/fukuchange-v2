@@ -3442,5 +3442,25 @@
   }
 }
 
+/* Center Screen Celebration Overlay (Bubble Explosion) */
+.center-celebration-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.center-celebration-svg {
+  width: min(1000px, 98vw);
+  height: min(600px, 85vh);
+  object-fit: contain;
+  transform: scale(1.6);
+  transform-origin: center center;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2));
+}
+
 
 
