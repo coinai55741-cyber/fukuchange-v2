@@ -1231,6 +1231,10 @@ function validateItem(item: { entityId?: string; name: string; type: string; wea
   const allowedItemIds = currentLevel.allowedItemIds ?? currentLevel.allowedItems?.map((name: string) => getItemEntityId(name)) ?? []
 
   if (denyItemIds.includes(itemEntityId)) {
+    const isWaterLevel = currentLevel.occasions.includes('水上')
+    if (isWaterLevel && (itemEntityId === 'shoes' || itemEntityId === 'rain_boots' || itemEntityId === 'knee_protector')) {
+      return { valid: false, reason: feedbackMessage('water_deny_item_mismatch', `要進游泳池玩水，不能穿「${item.name}」喔！`, { item: item.name }) }
+    }
     return { valid: false, reason: feedbackMessage('item_blacklist_mismatch', `「${item.name}」不符合此場合喔！`, { occasion: currentLevel.occasions.join('、'), item: item.name }) }
   }
 
@@ -1487,7 +1491,12 @@ function submitOutfit() {
   let isContextMatch = true
   let contextReason = ''
   let contextMistakes: string[] = []
-  const equippedItems = Object.values(selected.value).map(id => clothing.find(c => c.id === id)).filter((c): c is Clothing => Boolean(c))
+
+  // Check shoes and accessories first so inappropriate shoes/accessories warnings are raised first!
+  const slotPriority: Slot[] = ['shoes', 'head', 'neck', 'knee', 'pants', 'body']
+  const equippedItems = slotPriority
+    .map(slot => clothing.find(c => c.id === selected.value[slot]))
+    .filter((c): c is Clothing => Boolean(c))
 
   const limitedColors = splitQuestionValues(currentLevel.limitedColor)
   const limitedColorMax = Number(currentLevel.limitedColorMax)
@@ -1511,21 +1520,7 @@ function submitOutfit() {
     }
   }
 
-  if (isContextMatch && isWaterLevel && isTargetMatch) {
-    const waterItemIds = new Set(['swim_cap', 'swimsuit'])
-    const nonWaterItems = equippedItems.filter(item => !waterItemIds.has(item.entityId))
-    if (nonWaterItems.length > 0) {
-      const requiredWaterItem = isSameItem(question.item, '泅水帽') ? '泅水衫' : '泅水帽'
-      isContextMatch = false
-      contextMistakes = nonWaterItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-      contextReason = feedbackMessage(
-        'water_level_wrong_outfit',
-        '要進游泳池玩水，請記得改穿「{item}」喔～',
-        { item: requiredWaterItem }
-      )
-    }
-  }
-
+  // Prioritized context & blacklist validation for every dressed item (Shoes & Accessories first!)
   for (const item of equippedItems) {
     if (!isContextMatch) break
 
@@ -1547,6 +1542,22 @@ function submitOutfit() {
         contextReason = colorRes.reason || ''
         break
       }
+    }
+  }
+
+  // Water level check for missing water items (only if no blacklisted shoes/accessories mismatch was triggered)
+  if (isContextMatch && isWaterLevel && isTargetMatch) {
+    const waterItemIds = new Set(['swim_cap', 'swimsuit'])
+    const nonWaterItems = equippedItems.filter(item => !waterItemIds.has(item.entityId))
+    if (nonWaterItems.length > 0) {
+      const requiredWaterItem = isSameItem(question.item, '泅水帽') ? '泅水衫' : '泅水帽'
+      isContextMatch = false
+      contextMistakes = nonWaterItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage(
+        'water_level_wrong_outfit',
+        '要進游泳池玩水，請記得改穿「{item}」喔～',
+        { item: requiredWaterItem }
+      )
     }
   }
 
