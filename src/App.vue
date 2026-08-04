@@ -499,7 +499,7 @@ function materializeQuestionColor(question: Question): Question {
   }
 
   if (questionItemId === 'swimsuit') {
-    const swimCap = clothing.find((item) => item.entityId === 'swim_cap' && item.color === color)
+    const swimCap = clothing.find((item) => item.entityId === 'swim_cap' && item.colorKey === 'yellow')
     if (swimCap) target.head = swimCap.id
   }
 
@@ -1351,7 +1351,7 @@ function checkSemanticConflict(verb: string, colorName: string, itemName: string
   if (warmClothing.includes(itemName) && currentLevel.weather === '熱') {
     return {
       type: 'seasonal-mismatch',
-      reason: feedbackMessage('hot_with_warm_item', `天氣熱時穿「{item}」會太悶熱喔！`, { item: itemName })
+      reason: feedbackMessage('hot_with_warm_item', `天氣熱時穿「{item}」會太悶熱喔！`, { item: itemName, allowedItems: '短衫、短褲' })
     }
   }
 
@@ -1479,7 +1479,7 @@ function submitOutfit() {
   }
 
   const isItemMatch = currentLevel.allowedItemIds.some((itemId: string) => itemId === equippedTargetItem.entityId)
-  const isColorMatch = currentLevel.allowedColors.length === 0 || currentLevel.allowedColors.includes(colorName)
+  const isColorMatch = question.color ? isSameColor(colorName, question.color) : (currentLevel.allowedColors.length === 0 || currentLevel.allowedColors.includes(colorName))
   const isTargetMatch = isItemMatch && isColorMatch
 
   // Contextual appropriateness check for EVERY dressed item
@@ -1507,6 +1507,21 @@ function submitOutfit() {
         )
         break
       }
+    }
+  }
+
+  if (isContextMatch && isWaterLevel && isTargetMatch) {
+    const waterItemIds = new Set(['swim_cap', 'swimsuit'])
+    const nonWaterItems = equippedItems.filter(item => !waterItemIds.has(item.entityId))
+    if (nonWaterItems.length > 0) {
+      const requiredWaterItem = isSameItem(question.item, '泅水帽') ? '泅水衫' : '泅水帽'
+      isContextMatch = false
+      contextMistakes = nonWaterItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextReason = feedbackMessage(
+        'water_level_wrong_outfit',
+        '要進游泳池玩水，請記得改穿「{item}」喔～',
+        { item: requiredWaterItem }
+      )
     }
   }
 
@@ -1540,7 +1555,9 @@ function submitOutfit() {
   if (seasonalWeather === '熱' && warmClothing.length > 0) {
     isContextMatch = false
     contextMistakes = warmClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+    const warmItemNames = warmClothing.map(item => localizedClothingName(item)).join('、')
     contextReason = feedbackMessage('hot_with_warm_clothing', '好熱呀！建議改穿「{allowedItems}」或其他夏天衣物～', {
+      item: warmItemNames,
       allowedItems: '短衫、短褲'
     })
   }

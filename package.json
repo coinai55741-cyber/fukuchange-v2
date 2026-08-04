@@ -9,7 +9,8 @@
     "prebuild": "npm run sync-i18n",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "simulate:questions": "python scripts/simulate_questions.py --rounds 300"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "~4.2.0",
