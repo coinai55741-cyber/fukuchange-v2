@@ -178,7 +178,7 @@ const baseClothing: Clothing[] = [
   makeClothing('body-yellow', '短衫', '黃色', 'yellow', 'body', 'tops', 'shirt.png'),
   makeClothing('body-white', '短衫', '白色', 'white', 'body', 'tops', 'shirt.png'),
   makeClothing('body-black', '短衫', '烏色', 'black', 'body', 'tops', 'shirt.png'),
-  makeClothing('body-flower', '短衫', '紅色花圖案', 'red_flower_pattern', 'body', 'tops', 'shirt.png'),
+  makeClothing('body-flower', '短衫', '花布', 'red_flower_pattern', 'body', 'tops', 'shirt.png'),
   makeClothing('body-puffer-white', '羽絨衫', '白色', 'white', 'body', 'tops', 'puffer_jacket_B.png'),
   makeClothing('body-sweater-white', '膨線衫', '白色', 'white', 'body', 'tops', 'sweater_B.png'),
   makeClothing('body-swimsuit-yellow', '泅水衫', '黃色', 'yellow', 'body', 'tops', 'swimsuit_B.png'),
@@ -187,7 +187,7 @@ const baseClothing: Clothing[] = [
   makeClothing('pants-yellow', '短褲', '黃色', 'yellow', 'pants', 'bottoms', 'shorts_B.png'),
   makeClothing('pants-shorts-white', '短褲', '白色', 'white', 'pants', 'bottoms', 'shorts_B.png'),
   makeClothing('pants-white', '裙', '白色', 'white', 'pants', 'bottoms', 'skirt_B_over.png'),
-  makeClothing('pants-flower', '短褲', '紅色花圖案', 'red_flower_pattern', 'pants', 'bottoms', 'shorts_B.png'),
+  makeClothing('pants-flower', '短褲', '花布', 'red_flower_pattern', 'pants', 'bottoms', 'shorts_B.png'),
   makeClothing('shoes-white', '鞋', '白色', 'white', 'shoes', 'shoes', 'sneakers_B.png'),
   makeClothing('shoes-black', '鞋', '烏色', 'black', 'shoes', 'shoes', 'sneakers_B.png'),
   makeClothing('shoes-rain', '水靴筒', '黃色', 'yellow', 'shoes', 'shoes', 'rain_boots_B.png'),
@@ -205,7 +205,7 @@ const baseClothing: Clothing[] = [
 const dyeColors: { name: string; key: Clothing['colorKey'] }[] = [
   { name: '柑仔色', key: 'orange' },
   { name: '吊菜色', key: 'purple' },
-  { name: '紅色花圖案', key: 'red_flower_pattern' },
+  { name: '花布', key: 'red_flower_pattern' },
 ]
 
 const rainBootDyeColors: { name: string; key: Clothing['colorKey'] }[] = [
@@ -266,13 +266,13 @@ const slotByEntity: Record<string, Slot> = {
 
 const colorLabels: Record<string, string> = { 
   yellow: '黃色', white: '白色', black: '烏色', blue: '藍色', none: '',
-  orange: '柑仔色', purple: '吊菜色', red_flower_pattern: '紅色花圖案'
+  orange: '柑仔色', purple: '吊菜色', red_flower_pattern: '花布'
 }
 export const pinyinByWord: Record<string, string> = { 
   '藍衫': 'lamˋ samˊ', '短衫': 'donˋ qiu', '短褲': 'donˋ  fu', '長褲': 'congˇ fu', '鞋': 'haiˇ', 
   '水靴筒': 'suiˋ hioˊ thungˇ', '帽仔': 'mo eˋ', '頸圍仔': 'giangˋ viˇ eˋ', '膝頭落仔': 'qidˋ teuˇ labˋ eˋ', '保護膝頭个': 'qidˋ teuˇ labˋ eˋ', '護膝': 'qidˋ teuˇ labˋ eˋ',
   '黃色': 'vongˇ sedˋ', '白色': 'pag sedˋ', '烏色': 'vuˊ sedˋ', '藍色': 'lamˇ sedˋ',
-  '柑仔色': 'gamˊ eˋ sedˋ', '吊菜色': 'diau coi sedˋ', '紅色花圖案': 'fungˇ sedˋ faˊ bu',
+  '柑仔色': 'gamˊ eˋ sedˋ', '吊菜色': 'diau coi sedˋ', '花布': 'fungˇ sedˋ faˊ bu', '紅色花圖案': 'fungˇ sedˋ faˊ bu',
   '羽絨衫': 'iˋ iungˇ samˊ', '膨線衫': 'pong xien samˊ', '泅水帽': 'qiuˇ suiˋ moapˋ', '泅水衫': 'siuˊ suiˋ samˊ'
 }
 

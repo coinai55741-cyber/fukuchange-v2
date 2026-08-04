@@ -95,19 +95,19 @@ def isSameColor(c1, c2):
         return c1 == c2
     if c1 == c2:
         return True
-    flowerSet = {'紅色花圖案', '紅色花布', 'red_flower_pattern'}
+    flowerSet = {'花布', '紅色花布', 'red_flower_pattern'}
     return c1 in flowerSet and c2 in flowerSet
 
 colorLabels = {
     'yellow': '黃色', 'white': '白色', 'black': '烏色', 'blue': '藍色', 'none': '',
-    'orange': '柑仔色', 'purple': '吊菜色', 'red_flower_pattern': '紅色花圖案'
+    'orange': '柑仔色', 'purple': '吊菜色', 'red_flower_pattern': '花布'
 }
 
 pinyinByWord = {
     '藍衫': 'lamˋ samˊ', '短衫': 'donˋ qiu', '短褲': 'donˋ  fu', '長褲': 'congˇ fu', '鞋': 'haiˇ',
     '水靴筒': 'suiˋ hioˊ thungˇ', '帽仔': 'mo eˋ', '頸圍仔': 'giangˋ viˇ eˋ', '膝頭落仔': 'qidˋ teuˇ labˋ eˋ', '保護膝頭个': 'qidˋ teuˇ labˋ eˋ', '護膝': 'qidˋ teuˇ labˋ eˋ',
     '黃色': 'vongˇ sedˋ', '白色': 'pag sedˋ', '烏色': 'vuˊ sedˋ', '藍色': 'lamˇ sedˋ',
-    '柑仔色': 'gamˊ eˋ sedˋ', '吊菜色': 'diau coi sedˋ', '紅色花圖案': 'fungˇ sedˋ faˊ bu',
+    '柑仔色': 'gamˊ eˋ sedˋ', '吊菜色': 'diau coi sedˋ', '花布': 'fungˇ sedˋ faˊ bu',
     '羽絨衫': 'iˋ iungˇ samˊ', '膨線衫': 'pong xien samˊ', '泅水帽': 'qiuˇ suiˋ moapˋ', '泅水衫': 'siuˊ suiˋ samˊ'
 }
 
@@ -187,7 +187,7 @@ baseClothing = [
 dyeColors = [
     {'name': '柑仔色', 'key': 'orange'},
     {'name': '吊菜色', 'key': 'purple'},
-    {'name': '紅色花圖案', 'key': 'red_flower_pattern'},
+    {'name': '花布', 'key': 'red_flower_pattern'},
 ]
 rainBootDyeColors = [{'name': '烏色', 'key': 'black'}] + dyeColors
 fullDyeColors = [{'name': '烏色', 'key': 'black'}, {'name': '黃色', 'key': 'yellow'}, {'name': '白色', 'key': 'white'}] + dyeColors
@@ -323,7 +323,7 @@ def colorOptionsForQuestionItem(question, item):
     if not isDirtyContext:
         return baseOptions
     if item.entityId == 'rain_boots':
-        return ['柑仔色', '黃色', '白色', '烏色', '紅色花圖案', '吊菜色']
+        return ['柑仔色', '黃色', '白色', '烏色', '花布', '吊菜色']
     if item.entityId == 'shoes':
         return [c for c in baseOptions if c in ['烏色', '吊菜色']]
     if item.slot == 'pants':
@@ -595,7 +595,7 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
                 color_distribution[q['color']] += 1
             else:
                 if q['item'] == '藍衫':
-                    color_distribution['固定藍染'] += 1
+                    color_distribution['藍衫'] += 1
             item_distribution[getItemEntityId(q['item'])] += 1
             scenario_distribution[q['context']] += 1
 
@@ -924,7 +924,7 @@ def run_simulation(num_rounds=300, output_path='simulation-report.md'):
         ("0 次同池顏色重複", (pool1_color_dup_count + pool2_color_dup_count) == 0),
         ("0 次資料讀取錯誤", True),
         ("游泳題 deny_items 正確", True),
-        ("少見顏色皆有出現 (吊菜色, 烏色, 紅色花圖案, 柑仔色)", all(color_distribution[c] > 0 for c in ['吊菜色', '烏色', '紅色花圖案', '柑仔色'])),
+        ("少見顏色皆有出現 (吊菜色, 烏色, 花布, 柑仔色)", all(color_distribution[c] > 0 for c in ['吊菜色', '烏色', '花布', '柑仔色'])),
         ("少見衣物皆有出現 (泅水帽, 泅水衫, 水靴筒, 膝頭落仔, 頸圍仔, 帽仔)", all(item_distribution[getItemEntityId(i)] > 0 for i in ['泅水帽', '泅水衫', '水靴筒', '膝頭落仔', '頸圍仔', '帽仔']))
     ]
 

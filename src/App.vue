@@ -273,6 +273,7 @@ const vocabularyLookupIds: Record<string, string> = {
   '吊菜色': 'purple',
   '紫色': 'purple',
   '茄色': 'purple',
+  '花布': 'red_flower_pattern',
   '紅色花圖案': 'red_flower_pattern',
   '紅色花布': 'red_flower_pattern'
 }
