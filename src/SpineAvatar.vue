@@ -1,5 +1,28 @@
+<script lang="ts">
+import { Assets } from 'pixi.js'
+
+const spineAssets = {
+  skeleton: 'girl-skeleton',
+  atlas: 'girl-atlas',
+}
+
+function publicAssetUrl(file: string) {
+  return `${import.meta.env.BASE_URL}${file.replace(/^\/+/, '')}?v=20260803`
+}
+
+export async function preloadSpineAssets() {
+  try {
+    Assets.add({ alias: spineAssets.skeleton, src: publicAssetUrl('spine/正面_角色架構.json') })
+    Assets.add({ alias: spineAssets.atlas, src: publicAssetUrl('spine/正面_角色架構.atlas') })
+    await Assets.load([spineAssets.skeleton, spineAssets.atlas])
+  } catch (error) {
+    console.warn('Failed to preload Spine assets:', error)
+  }
+}
+</script>
+
 <script setup lang="ts">
-import { Application, Assets } from 'pixi.js'
+import { Application } from 'pixi.js'
 import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { clothing, type Clothing, type Slot } from './gameData'
@@ -203,9 +226,9 @@ onMounted(async () => {
   if (!host.value) return
 
   try {
-    Assets.add({ alias: spineAssets.skeleton, src: publicAssetUrl('spine/正面_角色架構.json') })
-    Assets.add({ alias: spineAssets.atlas, src: publicAssetUrl('spine/正面_角色架構.atlas') })
-    await Assets.load([spineAssets.skeleton, spineAssets.atlas])
+    await preloadSpineAssets()
+
+    if (!host.value) return
 
     app = new Application()
     try {

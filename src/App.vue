@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { clothing, questions, tabs, feedbackMessages, feedbackMessageRecords, pinyinByWord, isSameColor, isSameItem, getItemEntityId, type ClosetTab, type Clothing, type Question, type Slot } from './gameData'
 import { leaderboardService, type LeaderboardResponse } from './leaderboardService'
 import { getDictionaryItems, getHakkaSentenceComponents, SHOW_FALLBACK_NOTICE } from './dictionaryData'
-import SpineAvatar from './SpineAvatar.vue'
+import SpineAvatar, { preloadSpineAssets } from './SpineAvatar.vue'
 import LottieEmoji from './LottieEmoji.vue'
 import successEmojiData from '../public/emojis/success_1f604.json'
 import failureEmojiData from '../public/emojis/failure_1f62b.json'
@@ -20,6 +20,8 @@ type TutorialStep = {
   title: string
   text: string
 }
+type QuestionReviewItem = { color: string; name: string }
+
 type QuestionReview = {
   id: string
   index: number
@@ -28,6 +30,7 @@ type QuestionReview = {
   skipped: boolean
   targetMatched: boolean
   contextMistakes: string[]
+  contextMistakeItems?: QuestionReviewItem[]
   themeTitle: string
   hakkaBadge: string
   description: string
@@ -55,6 +58,7 @@ const questionScores = ref<Record<string, number>>({})
 const questionReviews = ref<QuestionReview[]>([])
 const elapsedMs = ref(0)
 const leaderboard = ref<LeaderboardResponse | null>(null)
+const resultRankingHeadingRef = ref<HTMLElement | null>(null)
 const pinyinField = ref<'color' | 'item'>('color')
 const selectedDialect = ref<Dialect>('hak-sihien')
 const closetItemIds = ref<Record<ClosetTab, string[]>>({ tops: [], bottoms: [], shoes: [], accessories: [] })
@@ -537,13 +541,37 @@ function preferredDistractorsForQuestion(question: Question | undefined, tab: Cl
 }
 
 function canShowClosetDistractor(question: Question | undefined, item: Clothing) {
+  // 藍衫不當誘答答案：只有當題目指定的 Target 就是藍衫時，藍衫才可以在衣櫃中出現
+  if (item.entityId === 'hakka_shirt') {
+    const targetItemIds = Object.values(question?.target ?? {})
+    const isTargetHakkaShirt = targetItemIds.some(id => id.startsWith('hakka_shirt') || id === 'body-blue') || question?.item?.includes('藍衫')
+    if (!isTargetHakkaShirt) return false
+  }
+
   const tags = question?.tags ?? []
   const isCold = tags.includes('冷')
-  const isDirtyContext = tags.includes('打掃') || tags.includes('rain') || tags.includes('下雨') || question?.context.includes('大掃除') || question?.context.includes('打掃') || question?.context.includes('雨')
+  const isHot = tags.includes('熱')
+  const isCleaning = tags.includes('打掃') || question?.context.includes('大掃除') || question?.context.includes('打掃')
+  const isSwimming = tags.includes('water') || question?.context.includes('泳池') || question?.context.includes('泅水')
+  const isInterview = question?.stageId === 8 || question?.context.includes('面試') || question?.context.includes('就職')
 
-  if (isCold && item.entityId === 'skirt') return false
+  if (isInterview && item.entityId === 'hakka_shirt') return false
 
-  if (!isDirtyContext) return true
+  if (isCold) {
+    if (item.entityId === 'skirt') return false
+    if (item.entityId === 'swimsuit') return false
+    if (item.entityId === 'shorts') return false
+  }
+
+  if (isHot) {
+    if (item.entityId === 'puffer_jacket') return false
+    if (item.entityId === 'sweater') return false
+    if (item.entityId === 'scarf') return false
+  }
+
+  if (!isSwimming && item.entityId === 'swimsuit') return false
+
+  if (!isCleaning) return true
   if (item.entityId === 'skirt') return false
   if (item.id === 'neck-white' || item.id.startsWith('scarf-')) return false
   if (item.entityId === 'rain_boots') return true
@@ -1182,7 +1210,37 @@ function correctSentence(question: Question) {
   return `${question.verb ?? '著'} ${color ? `${color}个` : ''}${itemName}${question.context}`
 }
 
-function recordQuestionReview(question: Question, points: number, passed: boolean, skipped: boolean, feedbackKey: string, feedbackText: string, targetMatched = passed, contextMistakes: string[] = []) {
+function getLocalizedItemPhrase(colorName: string, itemName: string) {
+  const localizedColor = (colorName && colorName !== '無' && colorName !== 'X') ? localizedVocabularyName(colorName) : ''
+  const localizedItem = localizedVocabularyName(itemName)
+  return localizedColor ? `${localizedColor}个${localizedItem}` : localizedItem
+}
+
+function reviewContextMistakesText(review: QuestionReview) {
+  if (review.contextMistakeItems && review.contextMistakeItems.length > 0) {
+    return review.contextMistakeItems.map(item => getLocalizedItemPhrase(item.color, item.name)).join('、')
+  }
+  return review.contextMistakes.join('、')
+}
+
+function reviewHakkaBadgeText(review: QuestionReview) {
+  if (review.skipped) return '本題已跳過'
+  const question = gameSet.value.find(q => q.id === review.id)
+  if (!question) return review.hakkaBadge
+  return reviewHakkaBadge(question, review.index - 1)
+}
+
+function recordQuestionReview(
+  question: Question,
+  points: number,
+  passed: boolean,
+  skipped: boolean,
+  feedbackKey: string,
+  feedbackText: string,
+  targetMatched = passed,
+  contextMistakes: string[] = [],
+  contextMistakeItems: QuestionReviewItem[] = []
+) {
   if (questionReviews.value.some((review) => review.id === question.id)) return
   const meta = feedbackMeta(feedbackKey)
   questionReviews.value = [
@@ -1195,6 +1253,7 @@ function recordQuestionReview(question: Question, points: number, passed: boolea
       skipped,
       targetMatched,
       contextMistakes,
+      contextMistakeItems,
       themeTitle: reviewThemeTitle(question),
       hakkaBadge: skipped ? '本題已跳過' : reviewHakkaBadge(question, questionIndex.value),
       description: reviewDescription(question),
@@ -1492,6 +1551,7 @@ function submitOutfit() {
   let isContextMatch = true
   let contextReason = ''
   let contextMistakes: string[] = []
+  let contextMistakeItems: QuestionReviewItem[] = []
 
   // Check shoes and accessories first so inappropriate shoes/accessories warnings are raised first!
   const slotPriority: Slot[] = ['shoes', 'head', 'neck', 'knee', 'pants', 'body']
@@ -1506,7 +1566,8 @@ function submitOutfit() {
       const limitedColorItems = equippedItems.filter(item => item.color === limitedColor)
       if (limitedColorItems.length > limitedColorMax) {
         isContextMatch = false
-        contextMistakes = limitedColorItems.map(item => `${item.color}个${item.name}`)
+        contextMistakeItems = limitedColorItems.map(item => ({ color: item.color, name: item.name }))
+        contextMistakes = limitedColorItems.map(item => getLocalizedItemPhrase(item.color, item.name))
         contextReason = feedbackMessage(
           currentLevel.limitedColorFeedbackKey || 'limited_color_over_max',
           `「${limitedColor}」出現太多件，較不符合此情境。`,
@@ -1528,7 +1589,8 @@ function submitOutfit() {
     const valRes = validateItem(item, currentLevel, item.verbs[0] || '著', false)
     if (!valRes.valid) {
       isContextMatch = false
-      contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
+      contextMistakeItems = [{ color: item.color, name: item.name }]
+      contextMistakes = [getLocalizedItemPhrase(item.color, item.name)]
       contextReason = valRes.reason || feedbackMessage('worn_item_context_mismatch', `阿梅身上的「{item}」比較不適合這個情境喔！`, { item: item.name, reason: '' })
       break
     }
@@ -1539,7 +1601,8 @@ function submitOutfit() {
       const colorRes = validateColor(colorObj, currentLevel, false, item)
       if (!colorRes.valid) {
         isContextMatch = false
-        contextMistakes = [`${item.color !== '無' ? `${item.color}个` : ''}${item.name}`]
+        contextMistakeItems = [{ color: item.color, name: item.name }]
+        contextMistakes = [getLocalizedItemPhrase(item.color, item.name)]
         contextReason = colorRes.reason || ''
         break
       }
@@ -1553,7 +1616,8 @@ function submitOutfit() {
     if (nonWaterItems.length > 0) {
       const requiredWaterItem = isSameItem(question.item, '泅水帽') ? '泅水衫' : '泅水帽'
       isContextMatch = false
-      contextMistakes = nonWaterItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextMistakeItems = nonWaterItems.map(item => ({ color: item.color, name: item.name }))
+      contextMistakes = nonWaterItems.map(item => getLocalizedItemPhrase(item.color, item.name))
       contextReason = feedbackMessage(
         'water_level_wrong_outfit',
         '要進游泳池玩水，請記得改穿「{item}」喔～',
@@ -1567,7 +1631,8 @@ function submitOutfit() {
   const warmClothing = equippedItems.filter(c => warmItems.includes(c.name))
   if (seasonalWeather === '熱' && warmClothing.length > 0) {
     isContextMatch = false
-    contextMistakes = warmClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+    contextMistakeItems = warmClothing.map(item => ({ color: item.color, name: item.name }))
+    contextMistakes = warmClothing.map(item => getLocalizedItemPhrase(item.color, item.name))
     const warmItemNames = warmClothing.map(item => localizedClothingName(item)).join('、')
     contextReason = feedbackMessage('hot_with_warm_clothing', '好熱呀！建議改穿「{allowedItems}」或其他夏天衣物～', {
       item: warmItemNames,
@@ -1579,7 +1644,8 @@ function submitOutfit() {
   const coldClothing = equippedItems.filter(c => coldItems.includes(c.name))
   if (seasonalWeather === '冷' && coldClothing.length > 0) {
     isContextMatch = false
-    contextMistakes = coldClothing.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+    contextMistakeItems = coldClothing.map(item => ({ color: item.color, name: item.name }))
+    contextMistakes = coldClothing.map(item => getLocalizedItemPhrase(item.color, item.name))
     contextReason = feedbackMessage('cold_with_summer_clothing', '冬天穿「{items}」等衣物會著涼～', {
       items: coldClothing.map(item => item.name).join('、')
     })
@@ -1595,18 +1661,21 @@ function submitOutfit() {
 
     if (isAllWhite) {
       isContextMatch = false
-      contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextMistakeItems = equippedItems.map(item => ({ color: item.color, name: item.name }))
+      contextMistakes = equippedItems.map(item => getLocalizedItemPhrase(item.color, item.name))
       contextReason = feedbackMessage('wedding_all_white', '「哇～全白是新娘子的專屬顏色喔！我們換個顏色，不要搶了新娘的風采～」')
     } else if (isAllBlack) {
       isContextMatch = false
-      contextMistakes = equippedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
+      contextMistakeItems = equippedItems.map(item => ({ color: item.color, name: item.name }))
+      contextMistakes = equippedItems.map(item => getLocalizedItemPhrase(item.color, item.name))
       contextReason = feedbackMessage('wedding_all_black', '「喜宴是開心的場合，穿得太黑在傳統習俗裡比較不吉利，換件活潑一點的衣服吧！」')
     } else if (whiteItems.length > 1 || blackItems.length > 1) {
       isContextMatch = false
       const limitedItems = whiteItems.length > 1 ? whiteItems : blackItems
       const limitedColor = whiteItems.length > 1 ? '白色' : '烏色'
-      contextMistakes = limitedItems.map(item => `${item.color !== '無' ? `${item.color}个` : ''}${item.name}`)
-      contextReason = feedbackMessage('festive_too_many_dark_colors', '新年去親戚家拜年的情境，「{color}」穿搭比例過高，在傳統喜慶場合較為不妥。', {
+      contextMistakeItems = limitedItems.map(item => ({ color: item.color, name: item.name }))
+      contextMistakes = limitedItems.map(item => getLocalizedItemPhrase(item.color, item.name))
+      contextReason = feedbackMessage('festive_too_many_dark_colors', '新年去親戚家拜年的情境，「{color}」穿搭比例過高，在傳統喜慶場景較為不妥。', {
         color: limitedColor
       })
     }
@@ -1617,7 +1686,8 @@ function submitOutfit() {
     const semanticErr = checkSemanticConflict(verb, colorName, itemName, currentLevel, question.context)
     if (semanticErr) {
       isContextMatch = false
-      contextMistakes = [`${colorName !== 'X' && colorName !== '無' ? `${colorName}个` : ''}${itemName}`]
+      contextMistakeItems = [{ color: colorName, name: itemName }]
+      contextMistakes = [getLocalizedItemPhrase(colorName, itemName)]
       contextReason = semanticErr.reason
     }
   }
@@ -1645,7 +1715,7 @@ function submitOutfit() {
 
   if (tier === 1) {
     const successText = feedbackMessage('tier_success', '🎉 完全正確！題目要求與情境都搭配得很好！')
-    if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText, true)
+    if (firstAttempt) recordQuestionReview(question, points, true, false, 'tier_success', successText, true, [], [])
     playSound('next')
     feedback.value = { kind: 'success', canAdvance: true, text: successText, emojiData: getFeedbackEmojiData('tier_success', successText) }
   } else {
@@ -1662,7 +1732,7 @@ function submitOutfit() {
       feedbackKey = 'tier_target_and_context_wrong'
       text = feedbackMessage('tier_target_and_context_wrong', '再想一下！阿梅的穿搭不符合題目和當下的情境要求喔。')
     }
-    if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text, isTargetMatch, contextMistakes)
+    if (firstAttempt) recordQuestionReview(question, points, false, false, feedbackKey, text, isTargetMatch, contextMistakes, contextMistakeItems)
     feedback.value = { kind: 'error', canAdvance: true, text, emojiData: getFeedbackEmojiData(feedbackKey, text) }
   }
 }
@@ -1705,6 +1775,12 @@ async function showLeaderboard() {
   playSound('click')
   leaderboard.value = await leaderboardService.getLeaderboard(9)
   screen.value = 'result'
+  void nextTick(() => {
+    if (resultRankingHeadingRef.value) {
+      resultRankingHeadingRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      resultRankingHeadingRef.value.focus({ preventScroll: true })
+    }
+  })
 }
 
 async function loadLobbyLeaderboard() {
@@ -1752,6 +1828,7 @@ onMounted(() => {
   pinyinField.value = Math.random() < 0.5 ? 'color' : 'item'
   void loadLobbyLeaderboard()
   preloadIntroImages()
+  void preloadSpineAssets()
   preloadImageFiles(['images-items/S2_m1_MBhot.png', 'images-items/S2_m1_MBnight.png', 'images-items/S2_m1_MBwinter.png', 'images-items/S2_m1_MBrain.png'])
   mobileMediaQuery = window.matchMedia('(max-width: 760px)')
   updateMobileViewport()
@@ -1979,7 +2056,7 @@ onBeforeUnmount(() => {
           </div>
         </section>
         <section class="result-ranking-card" tabindex="0" aria-label="排行榜">
-          <h2>排行榜</h2>
+          <h2 id="result-ranking-title" ref="resultRankingHeadingRef" tabindex="-1">排行榜</h2>
           <div class="result-rank-head"><span>排名</span><span>學員</span><span>分數</span><span>計時</span></div>
           <ol class="result-rank-list">
             <li v-for="entry in resultRankEntries" :key="`${entry.rank}-${entry.displayName}`" :class="{ mine: entry.displayName === myResultEntry?.displayName }">
@@ -2031,7 +2108,7 @@ onBeforeUnmount(() => {
                 <div class="sentence-review-detail" aria-label="答題結果與評語">
                   <section class="sentence-question-block" aria-label="題目">
                     <h4>{{ review.themeTitle }}</h4>
-                    <p class="sentence-question-badge">{{ review.hakkaBadge }}</p>
+                    <p class="sentence-question-badge">{{ reviewHakkaBadgeText(review) }}</p>
                     <p class="sentence-question-description">{{ review.description }}</p>
                   </section>
                   <section v-if="!review.passed && !review.skipped" class="sentence-hint" aria-label="不符合要求">
@@ -2039,9 +2116,9 @@ onBeforeUnmount(() => {
                       <b>{{ review.feedbackTitle }}</b>
                       <p>{{ review.feedbackText }}</p>
                     </template>
-                    <div v-if="review.targetMatched && review.contextMistakes.length" class="sentence-context-mistakes">
+                    <div v-if="review.targetMatched && (review.contextMistakeItems?.length || review.contextMistakes.length)" class="sentence-context-mistakes">
                       <small>這次主要不合適的穿戴：</small>
-                      <p>{{ review.contextMistakes.join('、') }}</p>
+                      <p>{{ reviewContextMistakesText(review) }}</p>
                     </div>
                   </section>
                   <section v-if="review.passed && !review.skipped" class="sentence-hint success" aria-label="答題結果">
